@@ -11,4 +11,4 @@ b.) **[[Operator Metadata Generator]]**, This needs to be able to generate metad
 
 c.) **Master clock** This device is very similar to the Operator metadata generator but it does not need to be able to generate any specific metadata. Its only purpose is to generate a timecode that can be scanned by the operator metadata recorder to keep them all in sync. 
 
-c.) **Metadata reader & File Sorting**, This software takes in all of the raw files from the cameras and recorders as well as any metadata from the director metadata recorder.
+c.) **[[Metadata reader & File Sorting]]**, This software takes in all of the raw files from the cameras and recorders as well as any metadata from the director metadata recorder.
