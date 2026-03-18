@@ -1,7 +1,7 @@
 
 The data is split into two different chunks, the current clock time, which needs to be communicated with the digital image or audio recording device, and the other metadata which can be recorded in a JSON format on device and be uploaded to the server later to be used in post to sort the files. 
 
-The json data would look something like this
+The JSON data would look something like this
 
 ```json
 {
@@ -12,13 +12,15 @@ The json data would look something like this
 	
 }
 ```
+
+Making this metadata time accurate is easy as the current time can just be written into the JSON. 
 ## Image
 
 there are several  issued that need to be solved when displaying information on a screen and then reading that info with a camera. 
 
 The main issue lies in the way that the screen renders images. We don't know the refresh rate of the screen, nor do we know the 
 
-**Solution 1 - Barcode**
+**Solution 1 - Basic Barcode**
 
 This relies on a 1d barcode format. using the fact that we have access to colors we can define the start and end of the barcode using red and green. 
 
