@@ -69,13 +69,15 @@ void main() {
 ```
 
 that then gives you a barcode that looks something like this:
-![[Pasted image 20260317152015.png]]
+![Pasted image 20260317152015](Pasted%20image%2020260317152015.png)
 
 On this example the time is encoded using 32 bits but in reality 64 bits will be needed to encode the EPOCH time. 
 
-With the current time encoded on the left and the device id on the right. If the shutter speed of the camera is slow the more precise codes become a gray color. This will need to be interpreted differently by the [[Metadata reader & File Sorting]] software. perhaps if the format is in a video the changes of the shade of gray between frames can be used to get a more accurate measure of the time
+With the current time encoded on the left and the device id on the right. If the shutter speed of the camera is slow the more precise codes become a gray color. This will need to be interpreted differently by the [Metadata reader & File Sorting](Metadata%20reader%20&%20File%20Sorting.md) software. perhaps if the format is in a video the changes of the shade of gray between frames can be used to get a more accurate measure of the time
+
+This approach can be modified for video. In order to prevent frames from smearing together 
 # Audio
 
 In order to get accurate timecodes with audio, an audio file should be generated for a time in the very near future (like 10-20ms, depending on how long it is likely going to take). 
 The data will be encoded using Frequency-Shift Keying (FSK). The frequent switches between 1200 Hz and 2200 Hz, representing 0 and 1. The transmission should start with the fixed pattern: `10110111000` ([Barker Code](https://en.wikipedia.org/wiki/Barker_code)) to represent the start of a transmission.
-This is followed by 64 bits representing the EPOCH in ms. This is then followed by the u16 device id. This is then followed by a 64 bit Reed-Solomon error correcting code. 
+This is followed by 64 bits representing the EPOCH in ms. This is then followed by the u16 device id. This is then followed by a 64 bit Reed-Solomon error correcting code.
