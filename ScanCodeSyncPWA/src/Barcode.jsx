@@ -1,16 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-
+import { getOrCreateDeviceId } from "./device_id";
 const TIME_BITS = 64;
 const DEVICE_BITS = 16;
 const TOTAL_COLS = TIME_BITS + DEVICE_BITS + 8;
-
-const getOrCreateDeviceId = () => {
-  const match = document.cookie.match(/(?:^|;\s*)deviceId=(\d+)/);
-  if (match) return parseInt(match[1], 10);
-  const id = Math.floor(Math.random() * 0xffff);
-  document.cookie = `deviceId=${id}; max-age=${10 * 365 * 24 * 60 * 60}; SameSite=Strict`;
-  return id;
-};
 
 const DEVICE_ID = getOrCreateDeviceId();
 const DEVICE_BITS_PRECOMPUTED = Array.from({ length: 16 }, (_, i) =>

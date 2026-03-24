@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "react": "^19.2.0",
+    "react-cookie": "^8.0.1",
     "react-dom": "^19.2.0",
+    "react-qr-code": "^2.0.18",
     "react-shader-canvas": "^1.0.0"
   },
   "devDependencies": {
