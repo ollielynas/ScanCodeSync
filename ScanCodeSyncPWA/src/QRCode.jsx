@@ -33,6 +33,18 @@ const QrMetadataDisplay = () => {
   const [index, setIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState(null);
 
+  const [slideShow, setSlideShow] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (slideShow) {
+        setIndex((index + 1) % chunks.length);
+      }
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [slideShow, index, chunks]);
+
   useEffect(() => {
     if (!visible) return;
     const data = cookies.changeLog || "";
@@ -120,6 +132,9 @@ const QrMetadataDisplay = () => {
               disabled={index === chunks.length - 1}
             >
               Next →
+            </button>
+            <button onClick={() => setSlideShow(!slideShow)}>
+              Play Slideshow
             </button>
           </div>
         </div>

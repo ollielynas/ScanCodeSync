@@ -75,9 +75,10 @@ function App() {
 
   return (
     <>
-      <label>
+      <label id="is_master_label">
         <input
           type="checkbox"
+          id="is_master_checkbox"
           checked={isMaster}
           onChange={(e) => set("isMaster", e.target.checked)}
         />
@@ -85,15 +86,16 @@ function App() {
       </label>
       <br />
       {isMaster && (
-        <p>
+        <p id="is_master_warning">
           Caution! There should only ever be one master clock and it should not
           change. Please ensure that this device is intended to be the master
           device.
         </p>
       )}
 
-      <label>
+      <label id="is_director_label">
         <input
+          id="is_director_checkbox"
           type="checkbox"
           checked={isDirector}
           onChange={(e) => set("isDirector", e.target.checked)}
@@ -103,13 +105,14 @@ function App() {
       <br />
       {isDirector && (
         <>
-          <p>
+          <p id="multi_directors_warning">
             Caution, having more than one director can result in unexpected
             behavior.
           </p>
-          <label>
+          <label id="production_name_label">
             Production Name:
             <input
+              id="production_name_input"
               type="text"
               value={productionName}
               onChange={(e) => set("productionName", e.target.value)}
@@ -118,12 +121,14 @@ function App() {
           <br />
           <label>
             <input
+              id="scene_name_toggle"
               type="checkbox"
               checked={enableSceneName}
               onChange={(e) => set("enableSceneName", e.target.checked)}
             />
             Scene Name:
             <input
+              id="scene_name_input"
               type="text"
               disabled={!enableSceneName}
               value={sceneName}
@@ -139,6 +144,7 @@ function App() {
             />
             Take Number:
             <input
+              id="take_number_input"
               type="number"
               disabled={!enableTakeNumber}
               value={takeNumber}
@@ -164,6 +170,7 @@ function App() {
           <br />
           <label>
             <input
+              id="is_operator_checkbox"
               type="checkbox"
               checked={enableOperatorName}
               onChange={(e) => set("enableOperatorName", e.target.checked)}
@@ -171,6 +178,7 @@ function App() {
             Operator Name:
             <input
               type="text"
+              id="operator_name_input"
               disabled={!enableOperatorName}
               value={operatorName}
               onChange={(e) => set("operatorName", e.target.value)}
@@ -181,12 +189,22 @@ function App() {
       )}
 
       <br />
-      <button onClick={handleSave} disabled={!hasPending}>
+      <button
+        id="save_changes_button"
+        onClick={handleSave}
+        disabled={!hasPending}
+      >
         Save Changes
       </button>
-      {hasPending && <span> (unsaved changes)</span>}
+      {hasPending && (
+        <span id="unsaved_changes_warning"> (unsaved changes)</span>
+      )}
       {hasLog && (
-        <button onClick={handleDownloadCSV} style={{ marginLeft: "8px" }}>
+        <button
+          id="download_csv_button"
+          onClick={handleDownloadCSV}
+          style={{ marginLeft: "8px" }}
+        >
           Download CSV
         </button>
       )}
