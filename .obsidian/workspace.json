@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/Monolithic PWA.md",
+                "file": "docs/Rust Desktop Implementation.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Monolithic PWA"
+              "title": "Rust Desktop Implementation"
             }
           }
         ]
@@ -196,12 +196,16 @@
   },
   "active": "2faa9030273dc2b9",
   "lastOpenFiles": [
-    "docs/Rust Desktop Implementation.md",
-    "ScanCodeSync.md",
-    "docs/Time Accurate Metadata.md",
-    "ScanCodeSyncDesktop.md",
     "docs/Metadata reader & File Sorting.md",
     "docs/Director Metadata Recorder.md",
+    "docs/Monolithic PWA.md",
+    "docs/Operator Metadata Generator.md",
+    "ScanCodeSyncPWA/README.md",
+    "Pasted image 20260317152015.png",
+    "docs/Time Accurate Metadata.md",
+    "docs/Rust Desktop Implementation.md",
+    "ScanCodeSync.md",
+    "ScanCodeSyncDesktop.md",
     "ScanCodeSyncPWA/node_modules/array-buffer-byte-length/test/index.js",
     "ScanCodeSyncPWA/node_modules/array-buffer-byte-length/tsconfig.json",
     "ScanCodeSyncPWA/node_modules/array-buffer-byte-length/README.md",
@@ -229,9 +233,6 @@
     "ScanCodeSyncPWA/node_modules/regjsparser/README.md",
     "ScanCodeSyncPWA/node_modules/regjsgen/README.md",
     "ScanCodeSyncPWA/node_modules/async/README.md",
-    "ScanCodeSyncPWA/node_modules/async/CHANGELOG.md",
-    "ScanCodeSyncPWA/node_modules/lodash.debounce/README.md",
-    "ScanCodeSyncPWA/node_modules/@babel/helper-wrap-function/README.md",
     "ScanCodeSyncPWA/node_modules/glslCanvas/data/moon.jpg",
     "ScanCodeSyncPWA/node_modules/glslCanvas/data/logo.jpg",
     "ScanCodeSyncPWA/public/favicon.svg",
@@ -241,7 +242,6 @@
     "CamSync.png",
     "Untitled.canvas",
     "ScanCodeSyncPWA/src/assets/react.svg",
-    "ScanCodeSync PWA Client/ScanCodeSyncPWA/src/assets/react.svg",
-    "ScanCodeSync PWA Client/ScanCodeSyncPWA/public/favicon.svg"
+    "ScanCodeSync PWA Client/ScanCodeSyncPWA/src/assets/react.svg"
   ]
 }
