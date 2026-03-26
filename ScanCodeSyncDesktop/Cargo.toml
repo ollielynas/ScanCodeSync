@@ -1,0 +1,10 @@
+[package]
+name = "ScanCodeSyncDesktop"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.102"
+egui-macroquad = "0.17.3"
+ffmpeg-sidecar = "2.4.0"
+macroquad = "0.4.14"

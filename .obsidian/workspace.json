@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/Time Accurate Metadata.md",
+                "file": "docs/Monolithic PWA.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Time Accurate Metadata"
+              "title": "Monolithic PWA"
             }
           }
         ]
@@ -196,6 +196,12 @@
   },
   "active": "2faa9030273dc2b9",
   "lastOpenFiles": [
+    "docs/Rust Desktop Implementation.md",
+    "ScanCodeSync.md",
+    "docs/Time Accurate Metadata.md",
+    "ScanCodeSyncDesktop.md",
+    "docs/Metadata reader & File Sorting.md",
+    "docs/Director Metadata Recorder.md",
     "ScanCodeSyncPWA/node_modules/array-buffer-byte-length/test/index.js",
     "ScanCodeSyncPWA/node_modules/array-buffer-byte-length/tsconfig.json",
     "ScanCodeSyncPWA/node_modules/array-buffer-byte-length/README.md",
@@ -208,7 +214,6 @@
     "ScanCodeSyncPWA/node_modules/array-buffer-byte-length",
     "ScanCodeSyncPWA/node_modules/arraybuffer.prototype.slice/test/tests.js",
     "ScanCodeSyncPWA/node_modules/arraybuffer.prototype.slice/test/implementation.js",
-    "ScanCodeSyncPWA/node_modules/arraybuffer.prototype.slice/test/shimmed.js",
     "ScanCodeSyncPWA/node_modules/arraybuffer.prototype.slice/README.md",
     "ScanCodeSyncPWA/node_modules/arraybuffer.prototype.slice/CHANGELOG.md",
     "ScanCodeSyncPWA/node_modules/is-arrayish/README.md",
@@ -227,11 +232,6 @@
     "ScanCodeSyncPWA/node_modules/async/CHANGELOG.md",
     "ScanCodeSyncPWA/node_modules/lodash.debounce/README.md",
     "ScanCodeSyncPWA/node_modules/@babel/helper-wrap-function/README.md",
-    "ScanCodeSyncPWA/node_modules/regexpu-core/README.md",
-    "ScanCodeSyncPWA/node_modules/crypto-random-string/readme.md",
-    "ScanCodeSyncPWA/node_modules/webidl-conversions/LICENSE.md",
-    "ScanCodeSyncPWA/node_modules/webidl-conversions/README.md",
-    "ScanCodeSyncPWA/node_modules/tr46/README.md",
     "ScanCodeSyncPWA/node_modules/glslCanvas/data/moon.jpg",
     "ScanCodeSyncPWA/node_modules/glslCanvas/data/logo.jpg",
     "ScanCodeSyncPWA/public/favicon.svg",
