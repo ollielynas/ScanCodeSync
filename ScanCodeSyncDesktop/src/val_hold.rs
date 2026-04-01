@@ -1,43 +1,73 @@
-use std::path::PathBuf;
+use core::fmt;
+use std::{fmt::Display, mem, path::PathBuf};
 
 use anyhow::*;
+use egui_macroquad::egui::ahash::HashSet;
 
-pub enum ValueHolder<T> where T: PlaceholderDisplayValue {
+#[derive(Clone)]
+pub enum ValueHolder<T> where T: PlaceholderDisplayValue + Clone {
     Value(Box<T>),
-    PlaceholderText(String),
+    BackupValue(Box<T>, u64),
 }
 
+impl<T> ValueHolder<T> where T: PlaceholderDisplayValue + Clone {
 
-impl<T> ValueHolder<T> where T: PlaceholderDisplayValue {
-    pub fn depopulate(&mut self) -> anyhow::Result<Box<T>> {
+
+    /// this get the inner value of the holder if it is not being used. If it is being used then an error will be returned.
+    pub fn depopulate(&mut self, task_id: u64) -> anyhow::Result<Box<T>> {
         match self {
             ValueHolder::Value(val) => {
-                let mut placeholder = ValueHolder::PlaceholderText(val.placeholder_text());
+                let mut placeholder = ValueHolder::BackupValue(val.clone(), task_id);
                 std::mem::swap(self, &mut placeholder);
                 match placeholder {
                     ValueHolder::Value(val2) => {return anyhow::Ok(val2)}
                     _ => {unreachable!("how tf")},
                 }
             },
-            ValueHolder::PlaceholderText(text) => {
-                anyhow::bail!("The value is being used, It has provided the following placeholder text: {}", text);
+            ValueHolder::BackupValue(value, id) => {
+                anyhow::bail!("The value is being used by: tasl:{}", id);
             }
         }
     }
 
+
+    /// puts the inner value back into the holder. this should be used when the
     pub fn populate(&mut self, value: Box<T>) -> anyhow::Result<()> {
         match self {
             ValueHolder::Value(_) => {
                 anyhow::bail!("value is already populated");
             },
-            ValueHolder::PlaceholderText(_) => {
+            ValueHolder::BackupValue(_, _) => {
                 let mut temp = ValueHolder::Value(value);
                 std::mem::swap(&mut temp, self);
             },
         }
         return Ok(());
     }
+
+    pub fn available(&self) -> bool {
+        matches!(self, ValueHolder::Value(_))
+    }
+
+    pub fn restore_if_dropped(&mut self, task_ids: &HashSet<u64>) {
+        if let ValueHolder::BackupValue(val, id) = self {
+            if !task_ids.contains(id) {
+                *self = ValueHolder::Value(mem::replace(val, val.clone()));
+            }
+        }
+    }
 }
+
+
+impl<T> ToString for ValueHolder<T> where T: PlaceholderDisplayValue + Clone {
+    fn to_string(&self) -> String {
+        return match self {
+            ValueHolder::BackupValue(t, id) => t.placeholder_text(),
+            ValueHolder::Value(v) => v.placeholder_text()
+        }
+    }
+}
+
 
 
 pub trait PlaceholderDisplayValue {

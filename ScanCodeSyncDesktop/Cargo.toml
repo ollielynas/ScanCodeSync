@@ -5,6 +5,12 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.102"
+atomic-progress = "0.1.2"
+crossbeam-channel = "0.5.15"
+directories = "6.0.0"
 egui-macroquad = "0.17.3"
+fastrand = "2.3.0"
 ffmpeg-sidecar = "2.4.0"
 macroquad = "0.4.14"
+open = "5.3.3"
+rayon = "1.11.0"
