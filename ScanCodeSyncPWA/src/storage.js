@@ -3,6 +3,7 @@
 export const saveFile = async (filename, content) => {
   const root = await navigator.storage.getDirectory();
   const fileHandle = await root.getFileHandle(filename, { create: true });
+
   const writable = await fileHandle.createWritable();
   await writable.write(content);
   await writable.close();

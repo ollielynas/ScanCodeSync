@@ -134,7 +134,7 @@ const QrMetadataDisplay = () => {
               Next →
             </button>
             <button onClick={() => setSlideShow(!slideShow)}>
-              Play Slideshow
+              Pause/Play Slideshow
             </button>
           </div>
         </div>

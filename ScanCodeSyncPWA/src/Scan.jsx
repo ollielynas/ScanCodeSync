@@ -1,13 +1,14 @@
 import { useRef } from "react";
 import { saveFile } from "./storage";
-
+import { getOrCreateDeviceId } from "./device_id";
 const TakePhotoScan = () => {
   const inputRef = useRef(null);
 
   const handleScan = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await saveFile(file.name, file);
+
+    await saveFile(`DEVICE_ID:${getOrCreateDeviceId()}-${file.name}`, file);
   };
 
   return (

@@ -7,7 +7,7 @@ import QrMetadataDisplay from "./QRCode";
 const DEVICE_ID = getOrCreateDeviceId();
 
 function App() {
-  const [cookies, setCookie] = useCookies([
+  const cookieKeys = [
     "isMaster",
     "isDirector",
     "isOperator",
@@ -18,9 +18,11 @@ function App() {
     "sceneName",
     "enableTakeNumber",
     "takeNumber",
+    // above is the values that will later become a part of the database
     "pendingChanges",
     "changeLog",
-  ]);
+  ];
+  const [cookies, setCookie] = useCookies(cookieKeys);
 
   const cookieOptions = { path: "/", maxAge: 60 * 60 * 24 * 365 };
 
@@ -208,7 +210,27 @@ function App() {
           Download CSV
         </button>
       )}
+      <br></br>
+      <button
+        onClick={() => {
+          if (
+            !confirm(
+              "warning this will delete all previously saved metadata, please ensure it has been downlaoded/recorded",
+            )
+          ) {
+            return;
+          }
+          const savedProductionName = productionName;
 
+          cookieKeys.forEach((a) => {
+            setCookie(a, undefined, cookieOptions);
+          });
+
+          set("productionName", savedProductionName);
+        }}
+      >
+        Clear Metadata
+      </button>
       <QrMetadataDisplay />
       <BarcodeDisplay />
       <TakePhotoScan />

@@ -1,4 +1,5 @@
 use std::{fs::{self, read_dir}, path::{Path, PathBuf}};
+use rayon::prelude::*;
 
 use anyhow::{self, Context};
 use atomic_progress::Progress;
@@ -7,6 +8,30 @@ use directories::ProjectDirs;
 pub fn get_project_dir() -> anyhow::Result<ProjectDirs> {
     return ProjectDirs::from("com", "Ollie Lyans",  "Sync").ok_or(anyhow::anyhow!("failed to get project dir"));
 }
+
+pub fn get_total_size_of_files(paths: &[PathBuf]) -> u64 {
+    paths.par_iter()
+        .filter_map(|path| {
+            fs::metadata(path).ok().map(|m| m.len())
+        })
+        .sum()
+}
+
+pub fn format_filesize_human_readable(bytes: u64) -> String {
+    let mut size = bytes as f64;
+    let units = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
+    let mut unit_idx = 0;
+
+    // Keep dividing by 1024 until the size is under 1024 or we run out of units
+    while size >= 1024.0 && unit_idx < units.len() - 1 {
+        size /= 1024.0;
+        unit_idx += 1;
+    }
+
+    format!("{:.2} {}", size, units[unit_idx])
+}
+
+
 
 /// this system should be redone to be more async safe
 pub fn set_config<T: ToString, S: ToString>(key: T, value: S) -> anyhow::Result<()> {
@@ -71,7 +96,7 @@ pub fn recurse_files(path: impl AsRef<Path>, progress: Progress) -> std::io::Res
 
         if meta.is_file() {
             buf.push(entry.path());
-            progress.set_item(entry.file_name().into_string().unwrap_or(String::from("filename error")));
+            progress.set_item("found".to_string() + &entry.file_name().into_string().unwrap_or(String::from("filename error")));
         }
     }
 

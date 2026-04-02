@@ -11,6 +11,7 @@ pub mod state;
 pub mod main_ui;
 pub mod task;
 pub mod tasks;
+pub mod data;
 pub mod util;
 
 #[macroquad::main("egui with macroquad")]
