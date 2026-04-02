@@ -36,4 +36,6 @@ pub trait Task {
     /// returns a unique id which can be used to identify which values have been taken
     fn get_id(&self) -> u64;
 
+    fn chain_tasks(&self) -> Vec<Box<dyn Task>> {return vec![]}
+
 }

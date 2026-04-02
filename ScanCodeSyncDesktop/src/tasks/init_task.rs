@@ -1,7 +1,7 @@
-use std::{path::{Path, PathBuf}, str::FromStr, thread};
+use std::{fs, path::{Path, PathBuf}, str::FromStr, thread};
 use anyhow::{anyhow, bail};
 use atomic_progress::{Progress, ProgressType};
-use crate::{task::Task, util::{get_config, set_config}, val_hold::ValueHolder};
+use crate::{task::Task, tasks::task_builders::build_update_input_files_list_task, util::{get_config, get_project_dir, set_config}, val_hold::ValueHolder};
 use directories::ProjectDirs;
 pub struct StateInitValues {
     pub input_folder: PathBuf,
@@ -63,7 +63,8 @@ impl Task for InitTask {
         self.handle = Some(thread::spawn(move || {
             progress.bump();
             let mut values = values;
-            if let Some(proj_dirs) = ProjectDirs::from("com", "OllieLyans",  "Sync") {
+
+            let proj_dirs = get_project_dir()?;
                 if let Some(path) = get_config("input_folder") {
                     progress.set_item("loading INPUT from config");
                     match PathBuf::from_str(&path) {
@@ -77,6 +78,7 @@ impl Task for InitTask {
                 if values.input_folder == PathBuf::new() {
                     progress.set_item("no input value found saved, loading default");
                     values.input_folder = proj_dirs.data_local_dir().to_path_buf().join("INPUT");
+                    fs::create_dir_all(&values.input_folder)?;
                     set_config("input_folder", values.input_folder.to_string_lossy().into_owned())?;
                 }
 
@@ -95,12 +97,13 @@ impl Task for InitTask {
                 if values.output_folder == PathBuf::new() {
                     progress.set_item("no output folder found saved, loading default");
                     values.output_folder = proj_dirs.data_local_dir().to_path_buf().join("PROCESSED");
+                    fs::create_dir_all(&values.output_folder)?;
                     set_config("output_folder", values.output_folder.to_string_lossy().into_owned())?;
                 }
 
                 progress.bump();
 
-            }
+
 
             return Ok(values);
         }));
@@ -156,5 +159,9 @@ impl Task for InitTask {
 
     fn is_finished(&mut self) -> bool {
     self.finished
+    }
+
+    fn chain_tasks(&self) -> Vec<Box<dyn Task>> {
+        vec![build_update_input_files_list_task()]
     }
 }

@@ -56,6 +56,19 @@ impl<T> ValueHolder<T> where T: PlaceholderDisplayValue + Clone {
             }
         }
     }
+
+    pub fn used_by(&self) -> Option<u64> {
+        match self {
+            ValueHolder::Value(_) => None,
+            ValueHolder::BackupValue(_, id) => Some(*id),
+        }
+    }
+    pub fn used_by_string(&self) -> String {
+        match self {
+            ValueHolder::Value(_) => "".to_string(),
+            ValueHolder::BackupValue(_, id) => (id % 999).to_string(),
+        }
+    }
 }
 
 

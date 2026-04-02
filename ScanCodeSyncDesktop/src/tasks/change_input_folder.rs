@@ -3,30 +3,26 @@ use std::{path::PathBuf, thread};
 use anyhow::bail;
 use atomic_progress::Progress;
 
-use crate::{task::Task, util::recurse_files};
+use crate::{task::Task, tasks::task_builders::build_update_input_files_list_task, util::recurse_files};
 
 
-pub struct UpdateNewFileListValues {
-    pub input_folder: PathBuf,
-    pub new_files: Vec<PathBuf>,
-}
-/// It could be a good idea to keep track of the last change in a folder and only update if something has changed. I dont know how easy that would be
-pub struct UpdateInputFileListTask {
-    handle: Option<thread::JoinHandle<anyhow::Result<UpdateNewFileListValues>>>,
+
+pub struct ChangeInputFolderTask {
+    handle: Option<thread::JoinHandle<anyhow::Result<PathBuf>>>,
     progress: Progress,
     id: u64,
     finished: bool,
 }
 
-impl Default for UpdateInputFileListTask {
+impl Default for ChangeInputFolderTask {
     fn default() -> Self {
         Self {
-            handle: None, progress: Progress::new_spinner("Update Input File List"), id: fastrand::u64(0..u64::MAX), finished: false }
+            handle: None, progress: Progress::new_spinner("Change Input Folder"), id: fastrand::u64(0..u64::MAX), finished: false }
     }
 }
 
 
-impl Task for UpdateInputFileListTask {
+impl Task for ChangeInputFolderTask {
     fn get_progress(&self) -> &Progress {
         &self.progress
     }
@@ -39,41 +35,39 @@ impl Task for UpdateInputFileListTask {
     }
 
     fn attempt_run(&mut self, state: &mut crate::state::State) -> anyhow::Result<()> {
-        let values: UpdateNewFileListValues;
+        let mut path: PathBuf;
         if [
                 state.input_folder.available(),
-                state.new_files.available(),
                 ].iter().all(|x| *x) {
-                    let _ = state.new_files.depopulate(self.id)?;
-                    values = UpdateNewFileListValues {
-                        input_folder: state.input_folder.depopulate(self.id)?.to_path_buf(),
-                        new_files: vec![],
-                    };
+                    path =  state.input_folder.depopulate(self.id)?.to_path_buf();
             }else {
                 anyhow::bail!("not all of the values are available");
             }
 
         self.finished = false;
+        self.progress.set_total(2);
 
-        self.progress = Progress::new_pb("Check For New Inputs", 2_u64);
         let progress = self.progress.clone();
         progress.bump();
         progress.set_item("starting thread");
         self.handle = Some(thread::spawn(move || {
-            let mut values = values;
+            progress.set_item("opening file dialogue");
 
-            values.new_files = recurse_files(values.input_folder.clone(), progress.clone())?;
+            path = rfd::FileDialog::new().set_can_create_directories(true).set_title("new input folder")
+                .pick_folder().ok_or(anyhow::anyhow!("no file was picked to be input"))?.to_path_buf();
+
             progress.bump();
+            progress.set_item("setting value");
 
 
-            return Ok(values);
+            return Ok(path);
         }));
         return Ok(());
 
     }
 
     fn get_name(&self) -> &str {
-        "discover input files"
+        "change input path"
     }
 
     fn silent(&self) -> bool {
@@ -100,9 +94,7 @@ impl Task for UpdateInputFileListTask {
         match resault {
             Ok(Ok(a)) => {
 
-                state.input_folder.populate(Box::new(a.input_folder))?;
-                state.new_files.populate(Box::new(a.new_files))?;
-
+                state.input_folder.populate(Box::new(a))?;
                 return Ok(());
             }
             Ok(Err(e)) => {bail!("{}", e)}
@@ -117,5 +109,9 @@ impl Task for UpdateInputFileListTask {
 
     fn is_finished(&mut self) -> bool {
     self.finished
+    }
+
+    fn chain_tasks(&self) -> Vec<Box<dyn Task>> {
+        vec![build_update_input_files_list_task()]
     }
 }

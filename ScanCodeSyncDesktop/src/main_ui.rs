@@ -1,4 +1,4 @@
-use crate::state::State;
+use crate::{state::State, tasks::task_builders::user_accessible_tasks, util::truncate_front};
 use egui_macroquad::egui;
 use macroquad::window::screen_width;
 use open;
@@ -8,29 +8,63 @@ use open;
 pub fn render_state(state: &mut State) {
     egui_macroquad::ui(|egui_ctx| {
 
+        catppuccin_egui::set_theme(egui_ctx, catppuccin_egui::LATTE);
+
         egui::TopBottomPanel::top("top")
             .show(egui_ctx, |ui|{
-                ui.label("thingy");
+                let mut add_task_id = 0;
+                ui.menu_button("Add Task", |ui| {
+                    for task in &mut state.user_available_tasks {
+                        if ui.button(task.get_name()).on_hover_text("task description").clicked() {
+                            add_task_id = task.get_id();
+                            ui.close_menu();
+                        }
+                    }
+                });
+                if add_task_id != 0 {
+                    let task = state.user_available_tasks.drain(..).find(|x| x.get_id() == add_task_id);
+                    state.user_available_tasks = user_accessible_tasks();
+                    if let Some(t) = task {
+                        state.add_task(t);
+                    }
+
+                }
             });
 
         egui::SidePanel::left("left panel (state)")
 
             .show(egui_ctx, |ui| {
                 egui::Grid::new("state").show(ui, |ui| {
+
+                    ui.strong("Value");
+                    ui.strong("State");
+                    ui.strong("Task ID");
+                    ui.end_row();
+
                 ui.label("file input");
-                if ui.link(state.input_folder.to_string()).clicked() {
+                if ui.link(truncate_front(state.input_folder.to_string(), 30)).clicked() {
                     let _ = open::that(state.input_folder.to_string());
                 }
+                ui.label(state.input_folder.used_by_string());
+
                 ui.end_row();
                 ui.label("output Path");
-                if ui.link(state.output_folder.to_string()).clicked() {
+                if ui.link(truncate_front(state.output_folder.to_string(),30)).clicked() {
                     let _ = open::that(state.output_folder.to_string());
                 };
+                ui.label(state.output_folder.used_by_string());
 
                 ui.end_row();
 
                 ui.label("no. unprocessed files:");
+                ui.label(state.new_files.to_string());
+                ui.label(state.new_files.used_by_string());
+                ui.end_row();
+
+                ui.label("no. processed, ready to be sorted files:");
                 ui.label(state.processed_unsorted_files.to_string());
+                ui.label(state.processed_unsorted_files.used_by_string());
+                ui.end_row();
 
                 });
             });
@@ -59,6 +93,7 @@ pub fn render_state(state: &mut State) {
                             ui.label(format!("--:--"));
                             ui.label(t.get_progress().get_item().to_string());
                         }
+                        ui.label((t.get_id()%999).to_string());
                         ui.end_row();
                     }
                 });

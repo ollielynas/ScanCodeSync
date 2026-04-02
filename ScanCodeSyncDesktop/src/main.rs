@@ -16,25 +16,35 @@ pub mod util;
 #[macroquad::main("egui with macroquad")]
 async fn main() {
 
+
+
     ffmpeg_sidecar::download::auto_download().unwrap();
 
     let mut state = State::default();
 
     state.add_task(build_init_task());
-    state.add_task(build_update_input_files_list_task());
 
     state.update_tasks();
 
-    let mut time = Instant::now();
+    let mut time_500ms = Instant::now();
+    let mut time_10000ms = Instant::now();
 
     loop {
         clear_background(WHITE);
 
-        if time.elapsed() > Duration::from_millis(500) {
-            time = Instant::now();
+        if time_500ms.elapsed() > Duration::from_millis(500) {
+            time_500ms = Instant::now();
             state.restore_dropped_variables();
             state.update_tasks();
         }
+        if time_10000ms.elapsed() > Duration::from_millis(10000) {
+            time_10000ms = Instant::now();
+            let _ = state.add_task_without_duplicate(build_update_input_files_list_task());
+        }
+
+
+
+
 
         // Process keys, mouse etc.
 
