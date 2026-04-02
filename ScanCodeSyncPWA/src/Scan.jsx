@@ -5,10 +5,14 @@ const TakePhotoScan = () => {
   const inputRef = useRef(null);
 
   const handleScan = async (e) => {
+    const now = BigInt(Date.now());
     const file = e.target.files?.[0];
     if (!file) return;
 
-    await saveFile(`DEVICE_ID:${getOrCreateDeviceId()}-${file.name}`, file);
+    await saveFile(
+      `DEVICE_ID:${getOrCreateDeviceId()}TIMESTAMP:${now}-${file.name}`,
+      file,
+    );
   };
 
   return (

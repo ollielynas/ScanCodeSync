@@ -5,6 +5,7 @@ use crate::{task::Task, tasks::task_builders::user_accessible_tasks, val_hold::*
 
 pub struct State {
     pub input_folder: ValueHolder<PathBuf>,
+    pub unsorted_folder: ValueHolder<PathBuf>,
     pub output_folder: ValueHolder<PathBuf>,
 
     pub new_files: ValueHolder<Vec<PathBuf>>,
@@ -19,6 +20,7 @@ impl Default for State {
     fn default() -> Self {
         State {
             input_folder: ValueHolder::Value(Box::new(PathBuf::new())),
+            unsorted_folder: ValueHolder::Value(Box::new(PathBuf::new())),
             output_folder: ValueHolder::Value(Box::new(PathBuf::new())),
             new_files: ValueHolder::Value(Box::new(vec![])),
             processed_unsorted_files: ValueHolder::Value(Box::new(vec![])),
@@ -47,6 +49,7 @@ impl State {
 
         self.input_folder.restore_if_dropped(&task_ids);
         self.output_folder.restore_if_dropped(&task_ids);
+        self.unsorted_folder.restore_if_dropped(&task_ids);
         self.processed_unsorted_files.restore_if_dropped(&task_ids);
         self.new_files.restore_if_dropped(&task_ids);
 

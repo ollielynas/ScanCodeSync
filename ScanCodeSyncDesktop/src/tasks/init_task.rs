@@ -6,7 +6,7 @@ use directories::ProjectDirs;
 pub struct StateInitValues {
     pub input_folder: PathBuf,
     pub output_folder: PathBuf,
-
+    pub unsorted_folder: PathBuf,
 }
 
 pub struct InitTask {
@@ -49,6 +49,7 @@ impl Task for InitTask {
                     values = StateInitValues {
                         input_folder: state.input_folder.depopulate(self.id)?.to_path_buf(),
                         output_folder: state.output_folder.depopulate(self.id)?.to_path_buf(),
+                        unsorted_folder: state.unsorted_folder.depopulate(self.id)?.to_path_buf(),
                     };
             }else {
                 anyhow::bail!("not all of the values are available");
@@ -56,7 +57,7 @@ impl Task for InitTask {
 
         self.finished = false;
 
-        self.progress = Progress::new_pb("Init Task", 5_u64);
+        self.progress = Progress::new_pb("Init Task", 7_u64);
         let progress = self.progress.clone();
 
         progress.set_item("starting thread");
@@ -74,6 +75,7 @@ impl Task for InitTask {
                         _ => (),
                     }
                 }
+
                 progress.bump();
                 if values.input_folder == PathBuf::new() {
                     progress.set_item("no input value found saved, loading default");
@@ -81,6 +83,29 @@ impl Task for InitTask {
                     fs::create_dir_all(&values.input_folder)?;
                     set_config("input_folder", values.input_folder.to_string_lossy().into_owned())?;
                 }
+
+                // input abpve, unsorted below
+
+                if let Some(path) = get_config("unsorted_folder") {
+                    progress.set_item("loading UNSORTED from config");
+                    match PathBuf::from_str(&path) {
+                        Ok(path_buf) => {
+                            values.unsorted_folder = path_buf;
+                        }
+                        _ => (),
+                    }
+                }
+
+                progress.bump();
+                if values.unsorted_folder == PathBuf::new() {
+                    progress.set_item("no unsorted value found saved, loading default");
+                    values.unsorted_folder = proj_dirs.data_local_dir().to_path_buf().join("UNSORTED");
+                    fs::create_dir_all(&values.unsorted_folder)?;
+                    set_config("unsorted_folder", values.unsorted_folder.to_string_lossy().into_owned())?;
+                }
+
+                // output below
+
 
                 progress.bump();
 
@@ -144,6 +169,7 @@ impl Task for InitTask {
 
                 state.input_folder.populate(Box::new(a.input_folder))?;
                 state.output_folder.populate(Box::new(a.output_folder))?;
+                state.unsorted_folder.populate(Box::new(a.unsorted_folder))?;
 
                 return Ok(());
             }

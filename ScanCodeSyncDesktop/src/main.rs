@@ -4,7 +4,7 @@ use macroquad::prelude::*;
 use egui_macroquad::egui;
 
 use crate::{main_ui::render_state, state::State, tasks::task_builders::{build_init_task, build_update_input_files_list_task}};
-
+use crate::util::window_conf;
 
 pub mod val_hold;
 pub mod state;
@@ -14,7 +14,7 @@ pub mod tasks;
 pub mod data;
 pub mod util;
 
-#[macroquad::main("egui with macroquad")]
+#[macroquad::main(window_conf)]
 async fn main() {
 
 

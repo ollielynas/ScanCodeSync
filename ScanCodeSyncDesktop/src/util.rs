@@ -1,4 +1,5 @@
 use std::{fs::{self, read_dir}, path::{Path, PathBuf}};
+use macroquad::{miniquad, window::Conf};
 use rayon::prelude::*;
 
 use anyhow::{self, Context};
@@ -116,4 +117,34 @@ pub fn truncate_front<T: ToString>(s: T, max_chars: usize) -> String {
     let truncated: String = s.to_string().chars().skip(char_count - keep_count).collect();
 
     format!("...{}", truncated)
+}
+
+
+use image::GenericImageView;
+
+fn resize_icon(bytes: &[u8], size: u32) -> Vec<u8> {
+    let img = image::load_from_memory(bytes).expect("Failed to decode icon");
+    let resized = img.resize_exact(size, size, image::imageops::FilterType::Lanczos3);
+    resized.to_rgba8().into_raw()
+}
+
+pub fn window_conf() -> Conf {
+    let icon_bytes = include_bytes!("favicon.png");
+
+    let small  = resize_icon(icon_bytes, 16);
+    let medium = resize_icon(icon_bytes, 32);
+    let big    = resize_icon(icon_bytes, 64);
+
+    Conf {
+        window_title: "Sync File Sorter".to_string(),
+        sample_count: 4,
+        window_width: 1000,
+        high_dpi: true,
+        icon: Some(miniquad::conf::Icon {
+            small:  small.try_into().unwrap(),
+            medium: medium.try_into().unwrap(),
+            big:    big.try_into().unwrap(),
+        }),
+        ..Default::default()
+    }
 }

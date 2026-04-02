@@ -7,9 +7,9 @@ use open;
 
 pub fn render_state(state: &mut State) {
     egui_macroquad::ui(|egui_ctx| {
-
+        egui_ctx.set_pixels_per_point(1.3);
         catppuccin_egui::set_theme(egui_ctx, catppuccin_egui::LATTE);
-
+        // println!("{}",screen_width());
         egui::TopBottomPanel::top("top")
             .show(egui_ctx, |ui|{
                 let mut add_task_id = 0;
@@ -41,14 +41,21 @@ pub fn render_state(state: &mut State) {
                     ui.strong("Task ID");
                     ui.end_row();
 
-                ui.label("file input");
+                ui.label("input folder");
                 if ui.link(truncate_front(state.input_folder.to_string(), 30)).clicked() {
                     let _ = open::that(state.input_folder.to_string());
                 }
                 ui.label(state.input_folder.used_by_string());
-
                 ui.end_row();
-                ui.label("output Path");
+
+                ui.label("processing folder");
+                if ui.link(truncate_front(state.unsorted_folder.to_string(), 30)).clicked() {
+                    let _ = open::that(state.unsorted_folder.to_string());
+                }
+                ui.label(state.unsorted_folder.used_by_string());
+                ui.end_row();
+
+                ui.label("output folder");
                 if ui.link(truncate_front(state.output_folder.to_string(),30)).clicked() {
                     let _ = open::that(state.output_folder.to_string());
                 };

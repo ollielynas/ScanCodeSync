@@ -1,14 +1,14 @@
 use anyhow;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum DeviceID {
-    ClientID(u16),
-    CameraID(String),
+pub enum DeviceId {
+    ClientId(u16),
+    CameraId(String),
 }
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct DeviceTime {
-    internal_clock: u64,
-    device_id: DeviceID,
+    pub internal_clock: u64,
+    pub device_id: DeviceId,
 }
 
 /// these data entries should be ripped from footage and metadata files as they are moved into the "processed but not sorted" phase
@@ -41,14 +41,14 @@ pub enum DataValue {
 }
 
 impl DataEntry {
-    fn from_csv_row(row: String) -> anyhow::Result<DataEntry> {
+    pub fn from_csv_row(row: &str) -> anyhow::Result<DataEntry> {
         let mut vals: Vec<&str> = row.split(",").collect();
         let cols: [&str; 4] = vals.as_mut_slice().try_into()?;
 
         return Ok(
             DataEntry { time: DeviceTime {
                 internal_clock: cols[1].parse()?,
-                device_id: DeviceID::ClientID(cols[0].parse()?),
+                device_id: DeviceId::ClientId(cols[0].parse()?),
             }, val: match (cols[2], cols[3]) {
 
                 ("isMaster", "true"|"True") => DataValue::IsMaster(true),
