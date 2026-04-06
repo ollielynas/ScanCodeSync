@@ -120,7 +120,6 @@ pub fn truncate_front<T: ToString>(s: T, max_chars: usize) -> String {
 }
 
 
-use image::GenericImageView;
 
 fn resize_icon(bytes: &[u8], size: u32) -> Vec<u8> {
     let img = image::load_from_memory(bytes).expect("Failed to decode icon");

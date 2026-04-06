@@ -1,24 +1,25 @@
 use anyhow;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DeviceId {
     ClientId(u16),
     CameraId(String),
 }
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DeviceTime {
     pub internal_clock: u64,
     pub device_id: DeviceId,
 }
 
 /// these data entries should be ripped from footage and metadata files as they are moved into the "processed but not sorted" phase
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct DataEntry {
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct TimelineEntry {
     time: DeviceTime,
     val: DataValue,
 }
 /// docs\Data Entry Options.md
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DataValue {
     IsMaster(bool),
     IsDirector(bool),
@@ -40,13 +41,13 @@ pub enum DataValue {
     ClockOffset(DeviceTime)
 }
 
-impl DataEntry {
-    pub fn from_csv_row(row: &str) -> anyhow::Result<DataEntry> {
+impl TimelineEntry {
+    pub fn from_csv_row(row: &str) -> anyhow::Result<TimelineEntry> {
         let mut vals: Vec<&str> = row.split(",").collect();
         let cols: [&str; 4] = vals.as_mut_slice().try_into()?;
 
         return Ok(
-            DataEntry { time: DeviceTime {
+            TimelineEntry { time: DeviceTime {
                 internal_clock: cols[1].parse()?,
                 device_id: DeviceId::ClientId(cols[0].parse()?),
             }, val: match (cols[2], cols[3]) {

@@ -4,3 +4,7 @@ pub mod update_input_file_list_task;
 pub mod change_input_folder;
 pub mod change_output_folder;
 pub mod import_media_task;
+pub mod process_input_files_task;
+pub mod update_unsorted_file_list;
+pub mod install_exiftools;
+pub mod restart;

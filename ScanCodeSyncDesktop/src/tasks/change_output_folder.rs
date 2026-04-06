@@ -3,7 +3,7 @@ use std::{path::PathBuf, thread};
 use anyhow::bail;
 use atomic_progress::Progress;
 
-use crate::{task::Task, tasks::task_builders::build_update_input_files_list_task, util::recurse_files};
+use crate::{populate_field, task::Task, tasks::task_builders::build_update_input_files_list_task, util::recurse_files};
 
 
 
@@ -93,8 +93,7 @@ impl Task for ChangeOutputFolderTask {
         let resault = handle.join();
         match resault {
             Ok(Ok(a)) => {
-
-                state.output_folder.populate(Box::new(a))?;
+                populate_field!(state, output_folder, a)?;
                 return Ok(());
             }
             Ok(Err(e)) => {bail!("{}", e)}

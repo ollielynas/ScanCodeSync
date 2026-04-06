@@ -1,12 +1,12 @@
 use std::{fs, path::{Path, PathBuf}, str::FromStr, thread};
 use anyhow::{anyhow, bail};
 use atomic_progress::{Progress, ProgressType};
-use crate::{task::Task, tasks::task_builders::build_update_input_files_list_task, util::{get_config, get_project_dir, set_config}, val_hold::ValueHolder};
+use crate::{depopulate_all_into_state_init_values, load_field, populate_field, task::Task, tasks::task_builders::build_update_input_files_list_task, util::{get_config, get_project_dir, set_config}, val_hold::ValueHolder};
 use directories::ProjectDirs;
 pub struct StateInitValues {
-    pub input_folder: PathBuf,
-    pub output_folder: PathBuf,
-    pub unsorted_folder: PathBuf,
+    pub input_folder: Box<PathBuf>,
+    pub output_folder: Box<PathBuf>,
+    pub unsorted_folder: Box<PathBuf>,
 }
 
 pub struct InitTask {
@@ -39,103 +39,6 @@ impl Task for InitTask {
             None => false,
         }
     }
-
-    fn attempt_run(&mut self, state: &mut crate::state::State) -> anyhow::Result<()> {
-        let values: StateInitValues;
-        if [
-                state.input_folder.available(),
-                state.output_folder.available(),
-                ].iter().all(|x| *x) {
-                    values = StateInitValues {
-                        input_folder: state.input_folder.depopulate(self.id)?.to_path_buf(),
-                        output_folder: state.output_folder.depopulate(self.id)?.to_path_buf(),
-                        unsorted_folder: state.unsorted_folder.depopulate(self.id)?.to_path_buf(),
-                    };
-            }else {
-                anyhow::bail!("not all of the values are available");
-            }
-
-        self.finished = false;
-
-        self.progress = Progress::new_pb("Init Task", 7_u64);
-        let progress = self.progress.clone();
-
-        progress.set_item("starting thread");
-        self.handle = Some(thread::spawn(move || {
-            progress.bump();
-            let mut values = values;
-
-            let proj_dirs = get_project_dir()?;
-                if let Some(path) = get_config("input_folder") {
-                    progress.set_item("loading INPUT from config");
-                    match PathBuf::from_str(&path) {
-                        Ok(path_buf) => {
-                            values.input_folder = path_buf;
-                        }
-                        _ => (),
-                    }
-                }
-
-                progress.bump();
-                if values.input_folder == PathBuf::new() {
-                    progress.set_item("no input value found saved, loading default");
-                    values.input_folder = proj_dirs.data_local_dir().to_path_buf().join("INPUT");
-                    fs::create_dir_all(&values.input_folder)?;
-                    set_config("input_folder", values.input_folder.to_string_lossy().into_owned())?;
-                }
-
-                // input abpve, unsorted below
-
-                if let Some(path) = get_config("unsorted_folder") {
-                    progress.set_item("loading UNSORTED from config");
-                    match PathBuf::from_str(&path) {
-                        Ok(path_buf) => {
-                            values.unsorted_folder = path_buf;
-                        }
-                        _ => (),
-                    }
-                }
-
-                progress.bump();
-                if values.unsorted_folder == PathBuf::new() {
-                    progress.set_item("no unsorted value found saved, loading default");
-                    values.unsorted_folder = proj_dirs.data_local_dir().to_path_buf().join("UNSORTED");
-                    fs::create_dir_all(&values.unsorted_folder)?;
-                    set_config("unsorted_folder", values.unsorted_folder.to_string_lossy().into_owned())?;
-                }
-
-                // output below
-
-
-                progress.bump();
-
-                if let Some(path) = get_config("output_folder") {
-                    match PathBuf::from_str(&path) {
-                        Ok(path_buf) => {
-                            values.output_folder = path_buf;
-                        }
-                        _ => (),
-                    }
-                }
-
-                progress.bump();
-                if values.output_folder == PathBuf::new() {
-                    progress.set_item("no output folder found saved, loading default");
-                    values.output_folder = proj_dirs.data_local_dir().to_path_buf().join("PROCESSED");
-                    fs::create_dir_all(&values.output_folder)?;
-                    set_config("output_folder", values.output_folder.to_string_lossy().into_owned())?;
-                }
-
-                progress.bump();
-
-
-
-            return Ok(values);
-        }));
-        return Ok(());
-
-    }
-
     fn get_name(&self) -> &str {
         "setup"
     }
@@ -167,9 +70,9 @@ impl Task for InitTask {
         match resault {
             Ok(Ok(a)) => {
 
-                state.input_folder.populate(Box::new(a.input_folder))?;
-                state.output_folder.populate(Box::new(a.output_folder))?;
-                state.unsorted_folder.populate(Box::new(a.unsorted_folder))?;
+                populate_field!(state, input_folder, *a.input_folder)?;
+                populate_field!(state, output_folder, *a.output_folder)?;
+                populate_field!(state, unsorted_folder, *a.unsorted_folder)?;
 
                 return Ok(());
             }
@@ -190,4 +93,44 @@ impl Task for InitTask {
     fn chain_tasks(&self) -> Vec<Box<dyn Task>> {
         vec![build_update_input_files_list_task()]
     }
+
+    fn attempt_run(&mut self, state: &mut crate::state::State) -> anyhow::Result<()> {
+        // Macro to check availability and depopulate in one go
+
+
+        // 1. Grab current values from state (which were loaded from JSON at startup)
+        let mut values = depopulate_all_into_state_init_values!(state, self.id, [input_folder, output_folder, unsorted_folder]);
+
+        self.finished = false;
+        self.progress = Progress::new_pb("Init Task", 4_u64);
+        let progress = self.progress.clone();
+
+        self.handle = Some(thread::spawn(move || -> anyhow::Result<StateInitValues> {
+            let proj_dirs = get_project_dir()?;
+
+            // Helper closure to ensure a path exists or fallback to default
+            let ensure_path = |path: &mut Box<PathBuf>, subfolder: &str| -> anyhow::Result<()> {
+                if **path == PathBuf::new() {
+                    progress.set_item(&format!("Setting default for {}", subfolder));
+                    **path = proj_dirs.data_local_dir().join(subfolder);
+                }
+                fs::create_dir_all(&**path)?;
+                progress.bump();
+                Ok(())
+            };
+
+            // 2. Validate/Create folders. If load_field failed earlier, these become defaults.
+            ensure_path(&mut values.input_folder, "INPUT")?;
+            ensure_path(&mut values.unsorted_folder, "UNSORTED")?;
+            ensure_path(&mut values.output_folder, "PROCESSED")?;
+
+
+
+
+            Ok(values)
+        }));
+        Ok(())
+    }
+
+
 }

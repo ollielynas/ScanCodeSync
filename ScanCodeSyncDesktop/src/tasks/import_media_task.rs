@@ -4,7 +4,7 @@ use anyhow::bail;
 use atomic_progress::Progress;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{task::Task, tasks::task_builders::build_update_input_files_list_task, util::{format_filesize_human_readable, get_total_size_of_files, recurse_files}};
+use crate::{populate_field, task::Task, tasks::task_builders::build_update_input_files_list_task, util::{format_filesize_human_readable, get_total_size_of_files, recurse_files}};
 
 
 
@@ -172,8 +172,7 @@ impl Task for ImportMediaTask {
         let resault = handle.join();
         match resault {
             Ok(Ok(a)) => {
-
-                state.input_folder.populate(Box::new(a))?;
+                populate_field!(state, input_folder, a)?;
                 return Ok(());
             }
             Ok(Err(e)) => {bail!("{}", e)}

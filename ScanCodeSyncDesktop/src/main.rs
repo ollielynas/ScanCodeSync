@@ -1,9 +1,10 @@
 use std::time::{Duration, Instant};
 
-use macroquad::prelude::*;
+use macroquad::{prelude::*, ui::widgets::Window, window};
 use egui_macroquad::egui;
+use rfd::MessageDialogResult;
 
-use crate::{main_ui::render_state, state::State, tasks::task_builders::{build_init_task, build_update_input_files_list_task}};
+use crate::{ main_ui::render_state, state::State, tasks::task_builders::{build_init_task, build_install_exiftools_task, build_update_input_files_list_task}};
 use crate::util::window_conf;
 
 pub mod val_hold;
@@ -13,15 +14,24 @@ pub mod task;
 pub mod tasks;
 pub mod data;
 pub mod util;
+pub mod macros;
 
 #[macroquad::main(window_conf)]
 async fn main() {
 
 
 
+    let mut state = State::default();
     ffmpeg_sidecar::download::auto_download().unwrap();
 
-    let mut state = State::default();
+    match exiftool::ExifTool::new() {
+        Ok(_) => {println!("exiftool is installed")},
+        Err(e) => {
+            println!("{e:?}");
+            state.add_task(build_install_exiftools_task());
+        },
+    }
+
 
     state.add_task(build_init_task());
 

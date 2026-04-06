@@ -1,16 +1,20 @@
 use core::fmt;
-use std::{fmt::Display, mem, path::PathBuf};
+use std::{fmt::Display, fs, mem, path::PathBuf};
 
 use anyhow::*;
+use directories::ProjectDirs;
 use egui_macroquad::egui::ahash::HashSet;
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-#[derive(Clone)]
-pub enum ValueHolder<T> where T: PlaceholderDisplayValue + Clone {
+use crate::{data::timeline::Timeline, util::get_project_dir};
+
+#[derive(Clone, Serialize)]
+pub enum ValueHolder<T> where T: PlaceholderDisplayValue + Clone + Serialize + DeserializeOwned   {
     Value(Box<T>),
     BackupValue(Box<T>, u64),
 }
 
-impl<T> ValueHolder<T> where T: PlaceholderDisplayValue + Clone {
+impl<T> ValueHolder<T> where T: PlaceholderDisplayValue + Clone + Serialize + DeserializeOwned   {
 
 
     /// this get the inner value of the holder if it is not being used. If it is being used then an error will be returned.
@@ -30,19 +34,45 @@ impl<T> ValueHolder<T> where T: PlaceholderDisplayValue + Clone {
         }
     }
 
+    pub fn load_from_file(&mut self, name: &str) -> anyhow::Result<()> {
+            let dir = get_project_dir()?;
+            let path = dir.config_local_dir().join(format!("{}.json", name));
+
+            if path.exists() {
+                let json_data = fs::read_to_string(path)?;
+                // Deserialise the JSON directly back into the expected type T
+                let value: T = serde_json::from_str(&json_data)?;
+                println!("{}", value.placeholder_text());
+                // Put it into the holder as a fresh 'Value' variant
+                *self = ValueHolder::Value(Box::new(value));
+            } else {
+                println!("path does not exist {:?}", path);
+            }
+            Ok(())
+        }
+
 
     /// puts the inner value back into the holder. this should be used when the
-    pub fn populate(&mut self, value: Box<T>) -> anyhow::Result<()> {
+    pub fn populate(&mut self, value: Box<T>, name: &str) -> anyhow::Result<()> {
+        let dir = get_project_dir()?;
+
+        let save_path = dir.config_local_dir().join(format!("{}.json", name));
+
+        // 1. Serialize and save the specific field to its own file
+        let json = serde_json::to_string_pretty(&value)?;
+        let _  = std::fs::create_dir(dir.config_local_dir());
+        std::fs::write(save_path, json)?;
+
+        // 2. Your existing swap logic
         match self {
             ValueHolder::Value(_) => {
                 anyhow::bail!("value is already populated");
             },
             ValueHolder::BackupValue(_, _) => {
-                let mut temp = ValueHolder::Value(value);
-                std::mem::swap(&mut temp, self);
+                *self = ValueHolder::Value(value);
             },
         }
-        return Ok(());
+        Ok(())
     }
 
     pub fn available(&self) -> bool {
@@ -72,7 +102,7 @@ impl<T> ValueHolder<T> where T: PlaceholderDisplayValue + Clone {
 }
 
 
-impl<T> ToString for ValueHolder<T> where T: PlaceholderDisplayValue + Clone {
+impl<T> ToString for ValueHolder<T> where T: PlaceholderDisplayValue + Clone + Serialize + DeserializeOwned  {
     fn to_string(&self) -> String {
         return match self {
             ValueHolder::BackupValue(t, id) => t.placeholder_text(),
@@ -95,5 +125,28 @@ impl PlaceholderDisplayValue for PathBuf {
 impl PlaceholderDisplayValue for Vec<PathBuf> {
     fn placeholder_text(&self) -> String {
         return format!("{} files", self.len())
+    }
+}
+
+impl PlaceholderDisplayValue for Timeline {
+    fn placeholder_text(&self) -> String {
+        return format!("{} timeline entries", self.entries.len())
+    }
+}
+
+
+pub trait ValueHolderExt {
+    fn available(&self) -> bool;
+    fn restore_if_dropped(&mut self, task_ids: &HashSet<u64>);
+}
+
+impl<T: PlaceholderDisplayValue + Clone + Serialize + DeserializeOwned  > ValueHolderExt for ValueHolder<T> {
+    fn available(&self) -> bool {
+        self.available()
+    }
+
+
+    fn restore_if_dropped(&mut self, task_ids: &HashSet<u64>) {
+        self.restore_if_dropped(task_ids);
     }
 }

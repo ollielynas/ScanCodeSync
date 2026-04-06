@@ -1,13 +1,14 @@
 
 use egui_macroquad::egui::ahash::HashSet;
+use serde::{Deserialize, Serialize};
 
-use crate::data::data_entry::DataEntry;
+use crate::data::data_entry::TimelineEntry;
 
 
 
-
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Timeline {
-    pub entries: HashSet<DataEntry>,
+    pub entries: HashSet<TimelineEntry>,
 }
 
 
@@ -16,5 +17,12 @@ impl Default for Timeline {
         Timeline {
             entries: HashSet::default(),
         }
+    }
+}
+
+impl Timeline {
+    /// todo: load from file
+    pub fn new() -> Timeline {
+        Timeline::default()
     }
 }

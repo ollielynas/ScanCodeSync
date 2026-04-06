@@ -6,27 +6,27 @@ use atomic_progress::Progress;
 use crate::{populate_field, task::Task, util::recurse_files};
 
 
-pub struct UpdateNewFileListValues {
-    pub input_folder: PathBuf,
-    pub new_files: Vec<PathBuf>,
+pub struct UpdateUnsortedFileListValues {
+    pub unsorted_folder: PathBuf,
+    pub unsorted_files: Vec<PathBuf>,
 }
 /// It could be a good idea to keep track of the last change in a folder and only update if something has changed. I dont know how easy that would be
-pub struct UpdateInputFileListTask {
-    handle: Option<thread::JoinHandle<anyhow::Result<UpdateNewFileListValues>>>,
+pub struct UpdateUnsortedFileListTask {
+    handle: Option<thread::JoinHandle<anyhow::Result<UpdateUnsortedFileListValues>>>,
     progress: Progress,
     id: u64,
     finished: bool,
 }
 
-impl Default for UpdateInputFileListTask {
+impl Default for UpdateUnsortedFileListTask {
     fn default() -> Self {
         Self {
-            handle: None, progress: Progress::new_spinner("Update Input File List"), id: fastrand::u64(0..u64::MAX), finished: false }
+            handle: None, progress: Progress::new_spinner("Update Unsorted File List"), id: fastrand::u64(0..u64::MAX), finished: false }
     }
 }
 
 
-impl Task for UpdateInputFileListTask {
+impl Task for UpdateUnsortedFileListTask {
     fn get_progress(&self) -> &Progress {
         &self.progress
     }
@@ -39,15 +39,15 @@ impl Task for UpdateInputFileListTask {
     }
 
     fn attempt_run(&mut self, state: &mut crate::state::State) -> anyhow::Result<()> {
-        let values: UpdateNewFileListValues;
+        let values: UpdateUnsortedFileListValues;
         if [
-                state.input_folder.available(),
-                state.new_files.available(),
+                state.unsorted_folder.available(),
+                state.unsorted_files.available(),
                 ].iter().all(|x| *x) {
                     let _ = state.new_files.depopulate(self.id)?;
-                    values = UpdateNewFileListValues {
-                        input_folder: state.input_folder.depopulate(self.id)?.to_path_buf(),
-                        new_files: vec![],
+                    values = UpdateUnsortedFileListValues {
+                        unsorted_folder: state.unsorted_folder.depopulate(self.id)?.to_path_buf(),
+                        unsorted_files: vec![],
                     };
             }else {
                 anyhow::bail!("not all of the values are available");
@@ -55,14 +55,14 @@ impl Task for UpdateInputFileListTask {
 
         self.finished = false;
 
-        self.progress = Progress::new_pb("Check For New Inputs", 2_u64);
+        self.progress = Progress::new_pb("Check For New Unsorted Files", 2_u64);
         let progress = self.progress.clone();
         progress.bump();
         progress.set_item("starting thread");
         self.handle = Some(thread::spawn(move || {
             let mut values = values;
 
-            values.new_files = recurse_files(values.input_folder.clone(), progress.clone())?;
+            values.unsorted_files = recurse_files(values.unsorted_folder.clone(), progress.clone())?;
             progress.bump();
 
 
@@ -73,7 +73,7 @@ impl Task for UpdateInputFileListTask {
     }
 
     fn get_name(&self) -> &str {
-        "discover input files"
+        "discover unsorted files"
     }
 
     fn silent(&self) -> bool {
@@ -100,8 +100,8 @@ impl Task for UpdateInputFileListTask {
         match resault {
             Ok(Ok(a)) => {
 
-                populate_field!(state, input_folder, a.input_folder)?;
-                populate_field!(state, new_files, a.new_files);
+                populate_field!(state, unsorted_folder, a.unsorted_folder)?;
+                populate_field!(state, unsorted_files, a.unsorted_files)?;
 
                 return Ok(());
             }

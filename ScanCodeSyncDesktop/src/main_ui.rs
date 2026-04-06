@@ -69,8 +69,13 @@ pub fn render_state(state: &mut State) {
                 ui.end_row();
 
                 ui.label("no. processed, ready to be sorted files:");
-                ui.label(state.processed_unsorted_files.to_string());
-                ui.label(state.processed_unsorted_files.used_by_string());
+                ui.label(state.unsorted_files.to_string());
+                ui.label(state.unsorted_files.used_by_string());
+                ui.end_row();
+
+                ui.label("timeline:");
+                ui.label(state.timeline.to_string());
+                ui.label(state.timeline.used_by_string());
                 ui.end_row();
 
                 });
@@ -82,17 +87,20 @@ pub fn render_state(state: &mut State) {
                     ui.label("Progress");
                     ui.label("Elapsed");
                     ui.label("State");
+                    ui.label("ID");
                     ui.end_row();
                     for t in &mut state.task_list {
                         if t.silent() {continue;}
                         ui.label(t.get_name());
                         if t.is_finished() {
                             ui.label("Finished");
+                            ui.label("100%");
+                            ui.label("");
 
                         }else if t.is_running() {
                             let time_text = t.get_progress().get_elapsed().map_or("--:--".to_string(), |x|
                                 {format!("{:02}:{:02}", x.as_secs() / 60, x.as_secs() % 60)});
-                            ui.label(format!("{}%", t.get_progress().get_percent()));
+                            ui.label(format!("{:04}%", t.get_progress().get_percent()));
                             ui.label(time_text);
                             ui.label(t.get_progress().get_item().to_string());
                         }else {

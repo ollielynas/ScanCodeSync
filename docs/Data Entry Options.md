@@ -19,6 +19,7 @@ below is a list of database entries that can be created by a client and should b
 }
 ```
 
+In the future I would like to add gps support
 
-[ScanCodeSyncDesktop\src\data\data_entry.rs]
-[ScanCodeSyncPWA\src\App.jsx]
+[[/ScanCodeSyncDesktop/src/data/data_entry.rs]]
+[[ScanCodeSyncPWA/src/App.jsx]]

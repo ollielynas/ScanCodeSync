@@ -1,7 +1,7 @@
 use std::{ mem, path::PathBuf};
 use egui_macroquad::egui::ahash::HashSet;
 
-use crate::{task::Task, tasks::task_builders::user_accessible_tasks, val_hold::*};
+use crate::{data::timeline::Timeline, load_field, task::Task, tasks::task_builders::user_accessible_tasks, val_hold::*};
 
 pub struct State {
     pub input_folder: ValueHolder<PathBuf>,
@@ -9,7 +9,10 @@ pub struct State {
     pub output_folder: ValueHolder<PathBuf>,
 
     pub new_files: ValueHolder<Vec<PathBuf>>,
-    pub processed_unsorted_files: ValueHolder<Vec<PathBuf>>,
+    pub unsorted_files: ValueHolder<Vec<PathBuf>>,
+
+
+    pub timeline: ValueHolder<Timeline>,
 
     pub task_list: Vec<Box<dyn Task>>,
     pub user_available_tasks: Vec<Box<dyn Task>>,
@@ -18,15 +21,23 @@ pub struct State {
 
 impl Default for State {
     fn default() -> Self {
-        State {
+        let mut new = State {
             input_folder: ValueHolder::Value(Box::new(PathBuf::new())),
             unsorted_folder: ValueHolder::Value(Box::new(PathBuf::new())),
             output_folder: ValueHolder::Value(Box::new(PathBuf::new())),
             new_files: ValueHolder::Value(Box::new(vec![])),
-            processed_unsorted_files: ValueHolder::Value(Box::new(vec![])),
+            unsorted_files: ValueHolder::Value(Box::new(vec![])),
+            timeline: ValueHolder::Value(Box::new(Timeline::new())),
+
             user_available_tasks: user_accessible_tasks(),
             task_list: vec![],
-        }
+        };
+
+        let _ = load_field!(new, input_folder);
+        let _ = load_field!(new, output_folder);
+        let tl = load_field!(new, timeline);
+
+        return new;
     }
 }
 
@@ -43,20 +54,30 @@ impl State {
         Ok(())
     }
 
+    pub fn all_values(&mut self) ->  Vec<&mut dyn ValueHolderExt> {
+        return vec![
+            &mut self.timeline,
+            &mut self.input_folder,
+            &mut self.output_folder,
+            &mut self.unsorted_folder,
+
+            &mut self.unsorted_files,
+            &mut self.new_files,
+        ];
+    }
+
+
     /// If the task that took ownership of the value fails in any way the values will be restored to their defaults
     pub fn restore_dropped_variables(&mut self) {
         let task_ids: HashSet<u64> = self.task_list.iter().map(|x| x.get_id()).collect();
 
-        self.input_folder.restore_if_dropped(&task_ids);
-        self.output_folder.restore_if_dropped(&task_ids);
-        self.unsorted_folder.restore_if_dropped(&task_ids);
-        self.processed_unsorted_files.restore_if_dropped(&task_ids);
-        self.new_files.restore_if_dropped(&task_ids);
-
+        for v in self.all_values() {
+            v.restore_if_dropped(&task_ids);
+        }
     }
 
 
-    /// Goes through the task list and attempst to start any function that has not already been started
+    /// Goes through the task list and attempts to start any function that has not already been started
     pub fn update_tasks(&mut self) {
 
         // removes tasks that have finished and adds any taskes included in the chain tasks list
@@ -92,9 +113,12 @@ impl State {
                 let attempt = task.attempt_run(self);
 
                 match attempt {
-                    Ok(_) => {},
+                    Ok(_) => {
+
+                    },
                     Err(e) => {
                         task.get_progress().set_item(format!("{e}"));
+                        task.cancel_task(self);
                     },
                 }
             }
