@@ -19,6 +19,12 @@ pub mod macros;
 #[macroquad::main(window_conf)]
 async fn main() {
 
+    let version = env!("CARGO_PKG_VERSION");
+
+    rfd::MessageDialog::new().set_title("Beta Version")
+        .set_description(format!("Warning, you are on version \n{}\nThis version is not feature complete.", version))
+        .show();
+
 
 
     let mut state = State::default();
