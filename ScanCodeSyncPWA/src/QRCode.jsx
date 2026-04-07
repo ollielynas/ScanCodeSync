@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { getOrCreateDeviceId } from "./device_id";
 import { useCookies } from "react-cookie";
+import { createPortal } from "react-dom";
 import QRCode from "react-qr-code";
+import { getOrCreateDeviceId } from "./device_id";
 
 const DEVICE_ID = getOrCreateDeviceId();
 const CHUNK_SIZE = 200;
@@ -77,70 +78,78 @@ const QrMetadataDisplay = () => {
 
   return (
     <>
-      {visible && (
-        <div
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "white",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
-          <button
-            onClick={() => setVisible(false)}
-            style={{ position: "absolute", top: 12, right: 12 }}
+      {visible &&
+        createPortal(
+          <div
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            className="fixed inset-0 z-[9999] overflow-hidden bg-white"
           >
-            Close
-          </button>
-
-          <div style={{ marginBottom: 12, fontFamily: "monospace" }}>
-            <h1>
-              {index + 1} / {chunks.length}
-            </h1>
-          </div>
-
-          {chunks.length === 0 ? (
-            <p>No data found in changeLog cookie.</p>
-          ) : (
-            <QRCode
-              value={chunks[index]}
-              size={Math.min(window.innerWidth, window.innerHeight) - 120}
-              level="M"
-            />
-          )}
-
-          <div style={{ display: "flex", gap: 24, marginTop: 24 }}>
             <button
-              onClick={() => setIndex((i) => Math.max(i - 1, 0))}
-              disabled={index === 0}
+              onClick={() => setVisible(false)}
+              className="absolute right-3 top-3 rounded-lg border border-slate-300 bg-white/90 px-3 py-2 text-sm font-medium text-slate-800"
             >
-              ← Prev
+              Close
             </button>
-            <button
-              onClick={() =>
-                setIndex((i) => Math.min(i + 1, chunks.length - 1))
-              }
-              disabled={index === chunks.length - 1}
-            >
-              Next →
-            </button>
-            <button onClick={() => setSlideShow(!slideShow)}>
-              Pause/Play Slideshow
-            </button>
-          </div>
-        </div>
-      )}
-      <br />
-      <button onClick={() => setVisible(true)}>Metadata QR code</button>
+
+            <div className="absolute left-3 top-3 z-10 font-mono text-sm text-slate-700">
+              <h1>
+                {index + 1} / {chunks.length}
+              </h1>
+            </div>
+
+            {chunks.length === 0 ? (
+              <p className="rounded-lg bg-slate-100 px-4 py-2 text-sm text-slate-800">
+                No data found in changeLog cookie.
+              </p>
+            ) : (
+              <div className="flex h-[100dvh] w-[100vw] items-center justify-center bg-white">
+                <QRCode
+                  value={chunks[index]}
+                  size={1024}
+                  style={{
+                    width: "min(85vw, 85dvh)",
+                    height: "min(85vw, 85dvh)",
+                    display: "block",
+                  }}
+                  level="M"
+                />
+              </div>
+            )}
+
+            <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-xl bg-white/90 p-2 shadow">
+              <button
+                onClick={() => setIndex((i) => Math.max(i - 1, 0))}
+                disabled={index === 0}
+                className="scs-button-secondary"
+              >
+                ← Prev
+              </button>
+              <button
+                onClick={() =>
+                  setIndex((i) => Math.min(i + 1, chunks.length - 1))
+                }
+                disabled={index === chunks.length - 1}
+                className="scs-button-secondary"
+              >
+                Next →
+              </button>
+              <button
+                onClick={() => setSlideShow(!slideShow)}
+                className="scs-button-secondary"
+              >
+                {slideShow ? "Pause Slideshow" : "Play Slideshow"}
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
+      <button
+        className="scs-button-secondary w-full"
+        onClick={() => setVisible(true)}
+      >
+        Metadata QR Code
+      </button>
     </>
   );
 };

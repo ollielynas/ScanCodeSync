@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { getOrCreateDeviceId } from "./device_id";
 const TIME_BITS = 64;
 const DEVICE_BITS = 16;
@@ -70,20 +71,22 @@ const BarcodeDisplay = () => {
 
   return (
     <>
-      {visible && (
-        <canvas
-          ref={canvasRef}
-          onClick={() => setVisible(false)}
-          style={{
-            display: "block",
-            position: "fixed",
-            inset: 0,
-            cursor: "pointer",
-          }}
-        />
-      )}
-      <br></br>
-      <button onClick={() => setVisible(true)}>Barcode</button>
+      {visible &&
+        createPortal(
+          <canvas
+            ref={canvasRef}
+            onClick={() => setVisible(false)}
+            className="fixed inset-0 z-[9999] block cursor-pointer"
+            style={{ width: "100vw", height: "100dvh" }}
+          />,
+          document.body,
+        )}
+      <button
+        className="scs-button-secondary w-full"
+        onClick={() => setVisible(true)}
+      >
+        Fullscreen Barcode
+      </button>
     </>
   );
 };

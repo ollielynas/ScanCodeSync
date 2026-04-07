@@ -1,0 +1,54 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color: #17313b;
+    background: linear-gradient(150deg, #f5fbf8 0%, #edf4fa 50%, #f4f7fc 100%);
+  }
+
+  * {
+    @apply box-border;
+  }
+
+  body {
+    @apply m-0 min-h-screen font-sans text-slate-800 antialiased;
+    background:
+      radial-gradient(
+        circle at 20% 0%,
+        rgba(43, 140, 111, 0.14),
+        transparent 32%
+      ),
+      radial-gradient(
+        circle at 80% 100%,
+        rgba(9, 93, 164, 0.1),
+        transparent 30%
+      ),
+      linear-gradient(150deg, #f5fbf8 0%, #edf4fa 50%, #f4f7fc 100%);
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+}
+
+@layer components {
+  .scs-card {
+    @apply rounded-2xl border border-white/70 bg-white/80 p-4 shadow-soft backdrop-blur md:p-6;
+  }
+
+  .scs-button {
+    @apply inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300;
+  }
+
+  .scs-button-secondary {
+    @apply inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400;
+  }
+
+  .scs-input {
+    @apply mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
+  }
+}

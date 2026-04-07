@@ -1,13 +1,16 @@
+import { useState } from "react";
 import { useCookies } from "react-cookie";
 import "./App.css";
 import BarcodeDisplay from "./Barcode";
-import TakePhotoScan from "./Scan";
 import { getOrCreateDeviceId } from "./device_id";
-import QrMetadataDisplay from "./QRCode";
 import InstallPWA from "./Pwa";
+import QrMetadataDisplay from "./QRCode";
+import TakePhotoScan from "./Scan";
 const DEVICE_ID = getOrCreateDeviceId();
 
 function App() {
+  const [mobilePanel, setMobilePanel] = useState("controls");
+
   const cookieKeys = [
     "isMaster",
     "isDirector",
@@ -78,167 +81,270 @@ function App() {
   const hasLog = !!(cookies.changeLog ?? "");
 
   return (
-    <>
-      <label id="is_master_label">
-        <input
-          type="checkbox"
-          id="is_master_checkbox"
-          checked={isMaster}
-          onChange={(e) => set("isMaster", e.target.checked)}
-        />
-        Master Clock
-      </label>
-      <br />
-      {isMaster && (
-        <p id="is_master_warning">
-          Caution! There should only ever be one master clock and it should not
-          change. Please ensure that this device is intended to be the master
-          device.
+    <main className="mx-auto flex h-dvh w-full max-w-6xl flex-col gap-3 overflow-hidden p-3 md:min-h-screen md:gap-6 md:overflow-visible md:p-8">
+      <header className="scs-card p-3 md:p-6">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-brand-700">
+          ScanCodeSync
         </p>
-      )}
+        <h1 className="text-xl font-semibold text-slate-900 md:text-3xl">
+          Production Metadata Console
+        </h1>
+      </header>
 
-      <label id="is_director_label">
-        <input
-          id="is_director_checkbox"
-          type="checkbox"
-          checked={isDirector}
-          onChange={(e) => set("isDirector", e.target.checked)}
-        />
-        Director Controls
-      </label>
-      <br />
-      {isDirector && (
-        <>
-          <p id="multi_directors_warning">
-            Caution, having more than one director can result in unexpected
-            behavior.
-          </p>
-          <label id="production_name_label">
-            Production Name:
-            <input
-              id="production_name_input"
-              type="text"
-              value={productionName}
-              onChange={(e) => set("productionName", e.target.value)}
-            />
-          </label>
-          <br />
-          <label>
-            <input
-              id="scene_name_toggle"
-              type="checkbox"
-              checked={enableSceneName}
-              onChange={(e) => set("enableSceneName", e.target.checked)}
-            />
-            Scene Name:
-            <input
-              id="scene_name_input"
-              type="text"
-              disabled={!enableSceneName}
-              value={sceneName}
-              onChange={(e) => set("sceneName", e.target.value)}
-            />
-          </label>
-          <br />
-          <label>
-            <input
-              type="checkbox"
-              checked={enableTakeNumber}
-              onChange={(e) => set("enableTakeNumber", e.target.checked)}
-            />
-            Take Number:
-            <input
-              id="take_number_input"
-              type="number"
-              disabled={!enableTakeNumber}
-              value={takeNumber}
-              onChange={(e) => set("takeNumber", e.target.value)}
-            />
-          </label>
-        </>
-      )}
+      <section className="flex min-h-0 flex-1 flex-col gap-3 md:grid md:grid-cols-2 md:gap-6">
+        <div className="grid grid-cols-2 gap-2 md:hidden">
+          <button
+            className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+              mobilePanel === "controls"
+                ? "bg-slate-900 text-white"
+                : "bg-white text-slate-700"
+            }`}
+            onClick={() => setMobilePanel("controls")}
+          >
+            Controls
+          </button>
+          <button
+            className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+              mobilePanel === "actions"
+                ? "bg-slate-900 text-white"
+                : "bg-white text-slate-700"
+            }`}
+            onClick={() => setMobilePanel("actions")}
+          >
+            Actions
+          </button>
+        </div>
 
-      <br />
-
-      <label>
-        <input
-          type="checkbox"
-          checked={isOperator}
-          onChange={(e) => set("isOperator", e.target.checked)}
-        />
-        Operator Controls
-      </label>
-
-      {isOperator && (
-        <>
-          <br />
-          <label>
-            <input
-              id="is_operator_checkbox"
-              type="checkbox"
-              checked={enableOperatorName}
-              onChange={(e) => set("enableOperatorName", e.target.checked)}
-            />
-            Operator Name:
-            <input
-              type="text"
-              id="operator_name_input"
-              disabled={!enableOperatorName}
-              value={operatorName}
-              onChange={(e) => set("operatorName", e.target.value)}
-            />
-          </label>
-          <br />
-        </>
-      )}
-
-      <br />
-      <button
-        id="save_changes_button"
-        onClick={handleSave}
-        disabled={!hasPending}
-      >
-        Save Changes
-      </button>
-      {hasPending && (
-        <span id="unsaved_changes_warning"> (unsaved changes)</span>
-      )}
-      {hasLog && (
-        <button
-          id="download_csv_button"
-          onClick={handleDownloadCSV}
-          style={{ marginLeft: "8px" }}
+        <article
+          className={`scs-card min-h-0 space-y-3 overflow-auto p-3 md:block md:space-y-4 md:p-6 ${
+            mobilePanel === "controls" ? "block" : "hidden"
+          }`}
         >
-          Download CSV
-        </button>
-      )}
-      <br></br>
-      <button
-        onClick={() => {
-          if (
-            !confirm(
-              "warning this will delete all previously saved metadata, please ensure it has been downlaoded/recorded",
-            )
-          ) {
-            return;
-          }
-          const savedProductionName = productionName;
+          <h2 className="text-lg font-semibold text-slate-900">Device Role</h2>
+          <label id="is_master_label" className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              id="is_master_checkbox"
+              className="mt-1 h-4 w-4 accent-brand-500"
+              checked={isMaster}
+              onChange={(e) => set("isMaster", e.target.checked)}
+            />
+            <span>
+              <span className="block font-medium text-slate-900">
+                Master Clock
+              </span>
+              <span className="text-sm text-slate-600">
+                Enable only on one trusted timing source.
+              </span>
+            </span>
+          </label>
 
-          cookieKeys.forEach((a) => {
-            setCookie(a, undefined, cookieOptions);
-          });
+          {isMaster && (
+            <p
+              id="is_master_warning"
+              className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800"
+            >
+              Caution: only one master clock should be active.
+            </p>
+          )}
 
-          set("productionName", savedProductionName);
-        }}
-      >
-        Clear Metadata
-      </button>
-      <QrMetadataDisplay />
-      <BarcodeDisplay />
-      <TakePhotoScan />
-      <br></br>
-      <InstallPWA />
-    </>
+          <label id="is_director_label" className="flex items-start gap-3">
+            <input
+              id="is_director_checkbox"
+              type="checkbox"
+              className="mt-1 h-4 w-4 accent-brand-500"
+              checked={isDirector}
+              onChange={(e) => set("isDirector", e.target.checked)}
+            />
+            <span>
+              <span className="block font-medium text-slate-900">
+                Director Controls
+              </span>
+              <span className="text-sm text-slate-600">
+                Manage project-level metadata fields.
+              </span>
+            </span>
+          </label>
+
+          {isDirector && (
+            <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p
+                id="multi_directors_warning"
+                className="text-sm text-amber-800"
+              >
+                Caution: more than one director device can conflict.
+              </p>
+              <label
+                id="production_name_label"
+                className="block text-sm font-medium text-slate-700"
+              >
+                Production Name
+                <input
+                  id="production_name_input"
+                  className="scs-input"
+                  type="text"
+                  value={productionName}
+                  onChange={(e) => set("productionName", e.target.value)}
+                />
+              </label>
+
+              <label className="block rounded-lg border border-slate-200 bg-white p-3">
+                <span className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    id="scene_name_toggle"
+                    type="checkbox"
+                    className="h-4 w-4 accent-brand-500"
+                    checked={enableSceneName}
+                    onChange={(e) => set("enableSceneName", e.target.checked)}
+                  />
+                  Enable Scene Name
+                </span>
+                <input
+                  id="scene_name_input"
+                  className="scs-input mt-0"
+                  type="text"
+                  disabled={!enableSceneName}
+                  value={sceneName}
+                  onChange={(e) => set("sceneName", e.target.value)}
+                />
+              </label>
+
+              <label className="block rounded-lg border border-slate-200 bg-white p-3">
+                <span className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-brand-500"
+                    checked={enableTakeNumber}
+                    onChange={(e) => set("enableTakeNumber", e.target.checked)}
+                  />
+                  Enable Take Number
+                </span>
+                <input
+                  id="take_number_input"
+                  className="scs-input mt-0"
+                  type="number"
+                  disabled={!enableTakeNumber}
+                  value={takeNumber}
+                  onChange={(e) => set("takeNumber", e.target.value)}
+                />
+              </label>
+            </div>
+          )}
+
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 accent-brand-500"
+              checked={isOperator}
+              onChange={(e) => set("isOperator", e.target.checked)}
+            />
+            <span>
+              <span className="block font-medium text-slate-900">
+                Operator Controls
+              </span>
+              <span className="text-sm text-slate-600">
+                Add per-operator metadata for each device.
+              </span>
+            </span>
+          </label>
+
+          {isOperator && (
+            <label className="block rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-medium text-slate-700">
+              <span className="mb-2 flex items-center gap-2">
+                <input
+                  id="is_operator_checkbox"
+                  type="checkbox"
+                  className="h-4 w-4 accent-brand-500"
+                  checked={enableOperatorName}
+                  onChange={(e) => set("enableOperatorName", e.target.checked)}
+                />
+                Enable Operator Name
+              </span>
+              <input
+                type="text"
+                id="operator_name_input"
+                className="scs-input mt-0"
+                disabled={!enableOperatorName}
+                value={operatorName}
+                onChange={(e) => set("operatorName", e.target.value)}
+              />
+            </label>
+          )}
+
+          <div className="border-t border-slate-200 pt-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                id="save_changes_button"
+                className="scs-button"
+                onClick={handleSave}
+                disabled={!hasPending}
+              >
+                Save Changes
+              </button>
+              {hasPending ? (
+                <p
+                  id="unsaved_changes_warning"
+                  className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"
+                >
+                  Unsaved updates
+                </p>
+              ) : (
+                <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                  All saved
+                </p>
+              )}
+            </div>
+          </div>
+        </article>
+
+        <article
+          className={`scs-card min-h-0 space-y-3 overflow-auto p-3 md:block md:space-y-4 md:p-6 ${
+            mobilePanel === "actions" ? "block" : "hidden"
+          }`}
+        >
+          <h2 className="text-lg font-semibold text-slate-900">Actions</h2>
+          <div className="flex flex-wrap gap-2">
+            {hasLog && (
+              <button
+                id="download_csv_button"
+                className="scs-button-secondary"
+                onClick={handleDownloadCSV}
+              >
+                Download CSV
+              </button>
+            )}
+            <button
+              className="scs-button-secondary border-rose-300 text-rose-700 hover:bg-rose-50"
+              onClick={() => {
+                if (
+                  !confirm(
+                    "warning this will delete all previously saved metadata, please ensure it has been downlaoded/recorded",
+                  )
+                ) {
+                  return;
+                }
+                const savedProductionName = productionName;
+
+                cookieKeys.forEach((a) => {
+                  setCookie(a, undefined, cookieOptions);
+                });
+
+                set("productionName", savedProductionName);
+              }}
+            >
+              Clear Metadata
+            </button>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <QrMetadataDisplay />
+            <BarcodeDisplay />
+            <TakePhotoScan />
+            <InstallPWA />
+          </div>
+        </article>
+      </section>
+    </main>
   );
 }
 

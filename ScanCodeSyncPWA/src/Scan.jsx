@@ -1,6 +1,6 @@
 import { useRef } from "react";
-import { saveFile } from "./storage";
 import { getOrCreateDeviceId } from "./device_id";
+import { saveFile } from "./storage";
 const TakePhotoScan = () => {
   const inputRef = useRef(null);
 
@@ -25,7 +25,12 @@ const TakePhotoScan = () => {
         style={{ display: "none" }}
         onChange={handleScan}
       />
-      <button onClick={() => inputRef.current.click()}>Scan</button>
+      <button
+        className="scs-button w-full"
+        onClick={() => inputRef.current.click()}
+      >
+        Scan Image
+      </button>
     </>
   );
 };
