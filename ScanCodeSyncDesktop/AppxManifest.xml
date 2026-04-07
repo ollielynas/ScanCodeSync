@@ -7,15 +7,15 @@
 >
 
   <Identity
-        Name="OllieLynas.ScanCodeSync"
-        Publisher="CN=OllieLynas"
+        Name="OllieLynas.SyncbyOllieLynas"
+        Publisher="CN=6AB40E3C-22F8-4989-8EB4-41F1E1AC1C05"
         Version="1.0.0.0"
         ProcessorArchitecture="x64"
     />
 
   <Properties>
     <DisplayName>ScanCodeSync</DisplayName>
-    <PublisherDisplayName>YourName</PublisherDisplayName>
+    <PublisherDisplayName>Ollie Lynas</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
