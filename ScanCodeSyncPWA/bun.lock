@@ -5,6 +5,7 @@
     "": {
       "name": "scancodesyncpwa",
       "dependencies": {
+        "pwa-install-handler": "^2.6.5",
         "react": "^19.2.0",
         "react-cookie": "^8.0.1",
         "react-dom": "^19.2.0",
@@ -849,6 +850,8 @@
     "prop-types": ["prop-types@15.8.1", "", { "dependencies": { "loose-envify": "^1.4.0", "object-assign": "^4.1.1", "react-is": "^16.13.1" } }, "sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg=="],
 
     "punycode": ["punycode@2.3.1", "", {}, "sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg=="],
+
+    "pwa-install-handler": ["pwa-install-handler@2.6.5", "", {}, "sha512-Y6ZS5+NofSM0KOFFzcIIxJat7+wl2MCanGrUM8rWufRxHeQj41d4px9jaozk20wLzIv/64eBUTGaQL6XVvvLRw=="],
 
     "qr.js": ["qr.js@0.0.0", "", {}, "sha512-c4iYnWb+k2E+vYpRimHqSu575b1/wKl4XFeJGpFmrJQz5I88v9aY2czh7s0w36srfCM1sXgC/xpoJz5dJfq+OQ=="],
 

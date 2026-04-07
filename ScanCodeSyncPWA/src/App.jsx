@@ -4,6 +4,7 @@ import BarcodeDisplay from "./Barcode";
 import TakePhotoScan from "./Scan";
 import { getOrCreateDeviceId } from "./device_id";
 import QrMetadataDisplay from "./QRCode";
+import InstallPWA from "./Pwa";
 const DEVICE_ID = getOrCreateDeviceId();
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
     "pendingChanges",
     "changeLog",
   ];
+
   const [cookies, setCookie] = useCookies(cookieKeys);
 
   const cookieOptions = { path: "/", maxAge: 60 * 60 * 24 * 365 };
@@ -234,6 +236,8 @@ function App() {
       <QrMetadataDisplay />
       <BarcodeDisplay />
       <TakePhotoScan />
+      <br></br>
+      <InstallPWA />
     </>
   );
 }
