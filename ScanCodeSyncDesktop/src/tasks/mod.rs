@@ -8,3 +8,4 @@ pub mod process_input_files_task;
 pub mod update_unsorted_file_list;
 pub mod install_exiftools;
 pub mod restart;
+pub mod install_magick;

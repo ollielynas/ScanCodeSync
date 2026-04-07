@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { getOrCreateDeviceId } from "./device_id";
-import { downloadFile, saveFile } from "./storage";
+import { saveFile } from "./storage";
 const TakePhotoScan = () => {
   const inputRef = useRef(null);
 
@@ -10,7 +10,7 @@ const TakePhotoScan = () => {
     if (!file) return;
 
     await saveFile(
-      `DEVICE_ID:${getOrCreateDeviceId()}TIMESTAMP:${now}-${file.name}`,
+      `DEVICE_ID${getOrCreateDeviceId()}TIMESTAMP${now}-${file.name}`,
       file,
     );
 

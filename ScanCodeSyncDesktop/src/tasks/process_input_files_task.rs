@@ -63,7 +63,6 @@ impl Task for ProcessInputFilesTask {
         progress.set_item("starting thread");
 
 
-
         let ex = match exiftool::ExifTool::new() {
             Ok(a) => a,
             Err(_) => {
@@ -84,6 +83,7 @@ impl Task for ProcessInputFilesTask {
             progress.set_total(files.len() as u64 * 2);
             let tl_entries: HashSet<TimelineEntry> = files.par_iter().map(|x| {
                 attempt_process_file(x, progress.clone(), &ex)
+
             }).filter(|x| x.is_ok()).flat_map(|x| x.unwrap()).collect();
 
             if (tl_entries).len() == 0 {

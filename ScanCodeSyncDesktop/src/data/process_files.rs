@@ -18,6 +18,9 @@ fn scan_qr(data: &[u8], width: u32, height: u32) -> Vec<String> {
     let pixel_count = (width * height) as usize;
     let mut gray = Vec::with_capacity(pixel_count);
 
+
+    // this bit is responsible for a good chunk of the flame graph
+
     // Safety: chunks_exact already guarantees 3-byte alignment,
     // but a manual loop lets the compiler auto-vectorise (SIMD) more easily
     for i in 0..pixel_count {
@@ -46,15 +49,19 @@ fn process_raw_file(path: &PathBuf, ex: &ExifTool ) -> anyhow::Result<Vec<Timeli
     let mut frame_number = 0;
     let creation_time = get_creation_time_ms(&path, &ex)?;
     let camera_id = get_device_id(&path, &ex)?;
+    println!("{} {:?}", creation_time, camera_id);
     FfmpegCommand::new()
             .input(path.to_str().context("path contained non utf8 chars")?)
             .rawvideo()          // shorthand for: -f rawvideo -pix_fmt rgb24 pipe:1
+            .create_no_window()
+
             .duration("45")
             .args(["-vf", "fps=10,scale=1080:-1"])
             .spawn()?
             .iter()?
             .for_each(|event| {
                 if let FfmpegEvent::OutputFrame(frame) = event {
+                    println!("frame found");
                     frame_number += 1;
 
                     // todo: band aid optomisatio that needs to be chnaged
@@ -62,14 +69,17 @@ fn process_raw_file(path: &PathBuf, ex: &ExifTool ) -> anyhow::Result<Vec<Timeli
                         entries.append(&mut process_csv_text(s));
                     }
 
-                    println!("frame number: {}", frame_number);
+
                     let time = DeviceTime {
                         /// I should try to avoid this clone
                         device_id: camera_id.clone(),
                         internal_clock: creation_time + (frame.timestamp * 1000.0).round() as u64,
                     };
-
-                    let barcode_data = detect_barcodes(&frame.data, frame.width, frame.height, &time);
+                    let barcode_res = detect_barcodes(&frame.data, frame.width, frame.height, &time);
+                    println!("res{:?}", barcode_res);
+                    if let Ok(mut barcode_data) = barcode_res {
+                        entries.append(&mut barcode_data);
+                    }
 
 
 
@@ -87,13 +97,13 @@ pub fn attempt_process_file(path: &PathBuf, progress: Progress, ex: &ExifTool) -
     progress.set_item(format!("processing: {filename:?}"));
     match (filetype.to_str(), filename) {
         (Some(".txt")|Some(".csv"), _) => {
-            // progress.bump();
+            progress.bump();
             return anyhow::Ok(process_csv_text(fs::read_to_string(path)?));
         }
         (_filetype, _name) => {
-            // progress.bump();
+            progress.bump();
             let new_entries = process_raw_file(path, &ex);
-            println!("{:?}", new_entries);
+            // println!("new entries {:?}", new_entries);
             return new_entries;
         }
     }

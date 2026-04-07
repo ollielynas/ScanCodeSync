@@ -43,7 +43,7 @@ impl Task for RestartTask {
         let progress = self.progress.clone();
         self.finished = false;
         self.handle = Some(thread::spawn(move || {
-            progress.set_item("shuting down...");
+            progress.set_item("shutting down...");
             let current_exe = std::env::current_exe().expect("Failed to get current exe path");
             Command::new(current_exe)
                 .args(std::env::args().skip(1))

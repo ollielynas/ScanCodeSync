@@ -1,4 +1,4 @@
-use crate::{state::State, tasks::task_builders::user_accessible_tasks, util::truncate_front};
+use crate::{state::State, tasks::task_builders::{build_import_media_task_folders, build_process_new_files_task, user_accessible_tasks}, util::truncate_front};
 use egui_macroquad::egui;
 use macroquad::window::screen_width;
 use open;
@@ -11,9 +11,12 @@ pub fn render_state(state: &mut State) {
         catppuccin_egui::set_theme(egui_ctx, catppuccin_egui::LATTE);
         // println!("{}",screen_width());
         egui::TopBottomPanel::top("top")
+
             .show(egui_ctx, |ui|{
+
                 let mut add_task_id = 0;
-                ui.menu_button("Add Task", |ui| {
+                ui.horizontal(|ui| {
+                ui.menu_button("> Tasks", |ui| {
                     for task in &mut state.user_available_tasks {
                         if ui.button(task.get_name()).on_hover_text("task description").clicked() {
                             add_task_id = task.get_id();
@@ -21,6 +24,15 @@ pub fn render_state(state: &mut State) {
                         }
                     }
                 });
+
+                if ui.button("Import Media").clicked() {
+                    let _ = state.add_task_without_duplicate(build_import_media_task_folders());
+                }
+                if ui.button(format!("Process {} from input", state.new_files.to_string())).clicked() {
+                    let _ = state.add_task_without_duplicate(build_process_new_files_task());
+                }
+                });
+
                 if add_task_id != 0 {
                     let task = state.user_available_tasks.drain(..).find(|x| x.get_id() == add_task_id);
                     state.user_available_tasks = user_accessible_tasks();
@@ -100,12 +112,14 @@ pub fn render_state(state: &mut State) {
                         }else if t.is_running() {
                             let time_text = t.get_progress().get_elapsed().map_or("--:--".to_string(), |x|
                                 {format!("{:02}:{:02}", x.as_secs() / 60, x.as_secs() % 60)});
-                            ui.label(format!("{:04}%", t.get_progress().get_percent()));
+                            ui.label(format!("{:.1}%", t.get_progress().get_percent()));
                             ui.label(time_text);
                             ui.label(t.get_progress().get_item().to_string());
                         }else {
                             ui.label(format!("Waiting"));
                             ui.label(format!("--:--"));
+                            ui.label(format!("{:.1}%", 0));
+
                             ui.label(t.get_progress().get_item().to_string());
                         }
                         ui.label((t.get_id()%999).to_string());

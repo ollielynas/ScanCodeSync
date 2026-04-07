@@ -52,8 +52,11 @@ impl Task for InstallExifToolsTask {
                                 .set_title("Failed to Install ExifTools")
                                 .set_description(format!("{e:?}\nPlease attempt to install yourself from:\nhttps://exiftool.org"))
                                 .set_level(rfd::MessageLevel::Error).show();
+                            bail!("{e}:?");
                         },
                     }
+                }else {
+                    bail!("user chose not to install");
                 }
             return Ok(());
         }));

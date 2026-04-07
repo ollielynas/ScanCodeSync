@@ -4,7 +4,7 @@ use macroquad::{prelude::*, ui::widgets::Window, window};
 use egui_macroquad::egui;
 use rfd::MessageDialogResult;
 
-use crate::{ main_ui::render_state, state::State, tasks::task_builders::{build_init_task, build_install_exiftools_task, build_update_input_files_list_task}};
+use crate::{ main_ui::render_state, state::State, tasks::task_builders::{build_init_task, build_install_exiftools_task, build_install_magick_task, build_update_input_files_list_task}, util::{get_project_dir, is_magick_installed}};
 use crate::util::window_conf;
 
 pub mod val_hold;
@@ -22,14 +22,18 @@ async fn main() {
 
 
     let mut state = State::default();
-    ffmpeg_sidecar::download::auto_download().unwrap();
+    // let a = ffmpeg_sidecar::download::download_ffmpeg_package("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", get_project_dir().unwrap().cache_dir());
 
+    ffmpeg_sidecar::download::auto_download().unwrap();
     match exiftool::ExifTool::new() {
         Ok(_) => {println!("exiftool is installed")},
         Err(e) => {
             println!("{e:?}");
             state.add_task(build_install_exiftools_task());
         },
+    }
+    if !is_magick_installed() {
+        state.add_task(build_install_magick_task());
     }
 
 

@@ -66,7 +66,7 @@ fn exif_datetime_to_ms(datetime_str: &str) -> Result<u64> {
 
 pub fn get_creation_time_ms(path: &PathBuf, ex: &ExifTool) -> Result<u64> {
     if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-        if let Some((_, rest)) = stem.split_once("TIMESTAMP:") {
+        if let Some((_, rest)) = stem.split_once("TIMESTAMP") {
             if let Some((ts, _)) = rest.split_once('-') {
                 if let Ok(ms) = ts.parse::<u64>() {
                     return Ok(ms);
@@ -75,18 +75,55 @@ pub fn get_creation_time_ms(path: &PathBuf, ex: &ExifTool) -> Result<u64> {
         }
     }
 
-    let tags = ["DateTimeOriginal", "CreateDate", "MediaCreateDate", "TrackCreateDate", "FileModifyDate"];
-    for tag in tags {
-        if let Ok(val) = ex.read_tag::<serde_json::Value>(path, tag, &[]) {
-            if let Some(s) = val.as_str() {
-                if let Ok(ms) = exif_datetime_to_ms(s) {
-                    return Ok(ms);
+    for tag in ["SubSecDateTimeOriginal", "SubSecCreateDate", "SubSecModifyDate"] {
+            if let Ok(val) = ex.read_tag::<serde_json::Value>(path, tag, &[]) {
+                if let Some(s) = val.as_str() {
+                    if let Ok(ms) = exif_datetime_to_ms(s) {
+                        return Ok(ms);
+                    }
                 }
             }
         }
-    }
 
-    Err(anyhow!("no creation time tag found in {path:?}"))
+        // Try EXIF datetime+subsec pairs
+        let exif_pairs = [
+            ("DateTimeOriginal", "SubSecTimeOriginal"),
+            ("CreateDate",       "SubSecTimeDigitized"),
+            ("ModifyDate",       "SubSecTime"),
+        ];
+        for (dt_tag, subsec_tag) in exif_pairs {
+            if let Ok(val) = ex.read_tag::<serde_json::Value>(path, dt_tag, &[]) {
+                if let Some(s) = val.as_str() {
+                    if let Ok(ms) = exif_datetime_to_ms(s) {
+                        let subsec_ms = ex.read_tag::<serde_json::Value>(path, subsec_tag, &[])
+                            .ok()
+                            .and_then(|v| v.as_str().map(|s| s.to_string()))
+                            .and_then(|s| {
+                                // "907" -> 907ms, "91" -> 910ms, "9" -> 900ms
+                                let truncated = &s[..s.len().min(3)];
+                                let padded = format!("{:0<3}", truncated);
+                                padded.parse::<u64>().ok()
+                            })
+                            .unwrap_or(0);
+                        return Ok(ms + subsec_ms);
+                    }
+                }
+            }
+        }
+
+        // Video fallbacks (no subsecond support in QuickTime integer timestamps)
+        for tag in ["MediaCreateDate", "TrackCreateDate", "Keys:CreationDate", "FileModifyDate"] {
+            if let Ok(val) = ex.read_tag::<serde_json::Value>(path, tag, &[]) {
+                if let Some(s) = val.as_str() {
+                    if let Ok(ms) = exif_datetime_to_ms(s) {
+                        return Ok(ms);
+                    }
+                }
+            }
+        }
+
+        anyhow::bail!("No creation time found in {}", path.display())
+
 }
 
 
@@ -96,8 +133,8 @@ pub fn get_creation_time_ms(path: &PathBuf, ex: &ExifTool) -> Result<u64> {
 pub fn get_device_id(path: &PathBuf, ex: &ExifTool) -> Result<DeviceId> {
     // filename takes priority
     if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-        if let Some((_, rest)) = stem.split_once("DEVICE_ID:") {
-            if let Some((id, _)) = rest.split_once("TIMESTAMP:") {
+        if let Some((_, rest)) = stem.split_once("DEVICE_ID") {
+            if let Some((id, _)) = rest.split_once("TIMESTAMP") {
                 if let Ok(n) = id.trim().parse::<u16>() {
                     return Ok(DeviceId::ClientId(n));
                 }
@@ -129,9 +166,13 @@ pub fn get_device_id(path: &PathBuf, ex: &ExifTool) -> Result<DeviceId> {
         .filter_map(|&tag| {
             ex.read_tag::<serde_json::Value>(path, tag, &[])
                 .ok()
-                .map(|a| format!("{tag}:{a}"))
-        })
-        .collect();
+                .and_then(|a| match a {
+                    serde_json::Value::Null => None,
+                    serde_json::Value::String(s) if s.is_empty() => None,
+                    serde_json::Value::String(s) => Some(format!("{s}")),
+                    other => Some(format!("{other}")),
+                })
+        }).collect();
 
 
     Ok(DeviceId::CameraId(format!("{}", prefix.join("-"))))

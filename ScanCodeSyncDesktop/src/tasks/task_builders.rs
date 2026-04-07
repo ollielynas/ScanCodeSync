@@ -1,4 +1,4 @@
-use crate::{task::Task, tasks::{change_input_folder::ChangeInputFolderTask, change_output_folder::ChangeOutputFolderTask, import_media_task::ImportMediaTask, init_task::InitTask, install_exiftools::InstallExifToolsTask, process_input_files_task::ProcessInputFilesTask, restart::RestartTask, update_input_file_list_task::UpdateInputFileListTask, update_unsorted_file_list::UpdateUnsortedFileListTask}};
+use crate::{task::Task, tasks::{change_input_folder::ChangeInputFolderTask, change_output_folder::ChangeOutputFolderTask, import_media_task::ImportMediaTask, init_task::InitTask, install_exiftools::InstallExifToolsTask, install_magick::InstallMagickTask, process_input_files_task::ProcessInputFilesTask, restart::RestartTask, update_input_file_list_task::UpdateInputFileListTask, update_unsorted_file_list::UpdateUnsortedFileListTask}};
 use std::sync::LazyLock;
 
 pub fn build_init_task() -> Box<dyn Task> {
@@ -28,6 +28,9 @@ pub fn build_process_new_files_task() -> Box<dyn Task> {
 pub fn build_install_exiftools_task() -> Box<dyn Task> {
     return Box::new(InstallExifToolsTask::default());
 }
+pub fn build_install_magick_task() -> Box<dyn Task> {
+    return Box::new(InstallMagickTask::default());
+}
 pub fn build_restart_task() -> Box<dyn Task> {
     return Box::new(RestartTask::default());
 }
@@ -41,5 +44,6 @@ pub fn user_accessible_tasks() -> Vec<Box<dyn Task>> {
         build_change_input_folder_task(),
         build_change_output_folder_task(),
         build_install_exiftools_task(),
+        build_install_magick_task(),
     ];
 }

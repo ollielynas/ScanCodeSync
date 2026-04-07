@@ -83,7 +83,13 @@ impl State {
         // removes tasks that have finished and adds any taskes included in the chain tasks list
         // potential todo: prevent task looping
         let mut chained_tasks = vec![];
-        self.task_list.retain_mut(|x| if x.is_finished() {chained_tasks.append(x.chain_tasks().as_mut());false} else {true});
+        self.task_list.retain_mut(|x| if x.is_finished() {
+            if x.get_progress().get_error().is_none() {
+                chained_tasks.append(x.chain_tasks().as_mut());
+            }
+            false
+        } else {true});
+
         self.task_list.append(&mut chained_tasks);
 
         let mut tasks:Vec<Box<dyn Task>> = vec![];
@@ -97,7 +103,7 @@ impl State {
                 match collect {
                     Ok(_)  => {
                         if task.is_finished() {
-
+                            task.get_progress().set_error(None::<String>);
                             task.get_progress().finish_with_item("finished");
                         }
                     },

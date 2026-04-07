@@ -15,8 +15,8 @@ pub struct DeviceTime {
 /// these data entries should be ripped from footage and metadata files as they are moved into the "processed but not sorted" phase
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TimelineEntry {
-    time: DeviceTime,
-    val: DataValue,
+    pub time: DeviceTime,
+    pub val: DataValue,
 }
 /// docs\Data Entry Options.md
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -38,6 +38,7 @@ pub enum DataValue {
     // the above values are recorded in a csv format and can be read form either a qr code or a text file
 
     /// the below value if read from a image of a barcode.
+    /// the device time in this enum should be the one that is gotten from the device that captured it.
     ClockOffset(DeviceTime)
 }
 

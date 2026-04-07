@@ -147,3 +147,12 @@ pub fn window_conf() -> Conf {
         ..Default::default()
     }
 }
+
+
+pub fn is_magick_installed() -> bool {
+    std::process::Command::new("magick")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
