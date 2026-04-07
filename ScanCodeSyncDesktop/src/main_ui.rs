@@ -1,4 +1,4 @@
-use crate::{state::State, tasks::task_builders::{build_import_media_task_folders, build_process_new_files_task, user_accessible_tasks}, util::truncate_front};
+use crate::{state::State, task::Task, tasks::task_builders::{build_import_media_task_folders, build_process_new_files_task, user_accessible_tasks}, util::truncate_front};
 use egui_macroquad::egui;
 use macroquad::window::screen_width;
 use open;
@@ -6,10 +6,21 @@ use open;
 
 
 pub fn render_state(state: &mut State) {
+
+    let mut kill_tasks: Vec<u64> = vec![];
+
     egui_macroquad::ui(|egui_ctx| {
         egui_ctx.set_pixels_per_point(1.3);
         catppuccin_egui::set_theme(egui_ctx, catppuccin_egui::LATTE);
-        // println!("{}",screen_width());
+
+        egui::TopBottomPanel::bottom("bottom")
+            .show(egui_ctx, |ui| {
+                ui.horizontal(|ui| {
+                ui.label(env!("CARGO_PKG_VERSION"));
+                ui.hyperlink("https://sync.ollielynas.com");
+                });
+            });
+
         egui::TopBottomPanel::top("top")
 
             .show(egui_ctx, |ui|{
@@ -115,11 +126,16 @@ pub fn render_state(state: &mut State) {
                             ui.label(format!("{:.1}%", t.get_progress().get_percent()));
                             ui.label(time_text);
                             ui.label(t.get_progress().get_item().to_string());
+
+                            // todo: for now you cannot kill a running task because of safety, so a co-opretave way of doing it will have to be created
+                            // if ui.small_button("cancel").clicked() {
+                            //     kill_tasks.push(t.get_id());
+                            // }
+
                         }else {
                             ui.label(format!("Waiting"));
                             ui.label(format!("--:--"));
                             ui.label(format!("{:.1}%", 0));
-
                             ui.label(t.get_progress().get_item().to_string());
                         }
                         ui.label((t.get_id()%999).to_string());
@@ -128,5 +144,19 @@ pub fn render_state(state: &mut State) {
                 });
             });
     });
+    if kill_tasks.len() > 0 {
+        let mut tasks_temp_holder = vec![];
+        std::mem::swap(&mut tasks_temp_holder, &mut state.task_list);
+        for id in kill_tasks {
+
+            for t in &mut tasks_temp_holder {
+                if id == t.get_id() {
+                t.cancel_task(state);
+                continue;
+                }
+            }
+        }
+        std::mem::swap(&mut tasks_temp_holder, &mut state.task_list);
+    }
 
 }

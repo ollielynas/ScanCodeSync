@@ -6,7 +6,7 @@ use ffmpeg_sidecar::{self, command::FfmpegCommand, event::FfmpegEvent};
 use image::{GrayImage, ImageBuffer};
 use rqrr::PreparedImage;
 
-use crate::data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, file_metadata::{self, get_creation_time_ms, get_device_id}, get_barcode::detect_barcodes};
+use crate::{data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, file_metadata::{self, get_creation_time_ms, get_device_id}, get_barcode::detect_barcodes}, util::{FFMPEG_FRMATS}};
 
 
 fn process_csv_text(text: String) -> Vec<TimelineEntry> {
@@ -44,48 +44,48 @@ fn scan_qr(data: &[u8], width: u32, height: u32) -> Vec<String> {
 }
 
 
-fn process_raw_file(path: &PathBuf, ex: &ExifTool ) -> anyhow::Result<Vec<TimelineEntry>> {
+fn process_raw_data(data: &[u8], height: u32, width: u32, entries: &mut Vec<TimelineEntry>, camera_id: &DeviceId, creation_time: u64, timestamp: f32) {
+    for s in scan_qr(data, width, height) {
+        entries.append(&mut process_csv_text(s));
+    }
+
+
+    let time = DeviceTime {
+        // I should try to avoid this clone
+        device_id: camera_id.clone(),
+        internal_clock: creation_time + (timestamp * 1000.0).round() as u64,
+    };
+    let barcode_res = detect_barcodes(&data, width, height, &time);
+    println!("res{:?}", barcode_res);
+    if let Ok(mut barcode_data) = barcode_res {
+        entries.append(&mut barcode_data);
+    }
+
+
+}
+
+fn process_raw_file(path: &PathBuf, ex: &ExifTool, filetype: String ) -> anyhow::Result<Vec<TimelineEntry>> {
     let mut entries = vec![];
-    let mut frame_number = 0;
     let creation_time = get_creation_time_ms(&path, &ex)?;
     let camera_id = get_device_id(&path, &ex)?;
-    println!("{} {:?}", creation_time, camera_id);
-    FfmpegCommand::new()
-            .input(path.to_str().context("path contained non utf8 chars")?)
-            .rawvideo()          // shorthand for: -f rawvideo -pix_fmt rgb24 pipe:1
-            .create_no_window()
 
-            .duration("45")
-            .args(["-vf", "fps=10,scale=1080:-1"])
-            .spawn()?
-            .iter()?
-            .for_each(|event| {
-                if let FfmpegEvent::OutputFrame(frame) = event {
-                    println!("frame found");
-                    frame_number += 1;
-
-                    // todo: band aid optomisatio that needs to be chnaged
-                    for s in scan_qr(&frame.data, frame.width, frame.height) {
-                        entries.append(&mut process_csv_text(s));
+    if FFMPEG_FRMATS.contains(&filetype) {
+        FfmpegCommand::new()
+                .input(path.to_str().context("path contained non utf8 chars")?)
+                .rawvideo()          // shorthand for: -f rawvideo -pix_fmt rgb24 pipe:1
+                .create_no_window()
+                .duration("45")
+                .args(["-vf", "fps=10,scale=1080:-1"])
+                .spawn()?
+                .iter()?
+                .for_each(|event| {
+                    if let FfmpegEvent::OutputFrame(frame) = event {
+                        process_raw_data(&frame.data, frame.height, frame.width, &mut entries, &camera_id, creation_time, frame.timestamp);
                     }
-
-
-                    let time = DeviceTime {
-                        /// I should try to avoid this clone
-                        device_id: camera_id.clone(),
-                        internal_clock: creation_time + (frame.timestamp * 1000.0).round() as u64,
-                    };
-                    let barcode_res = detect_barcodes(&frame.data, frame.width, frame.height, &time);
-                    println!("res{:?}", barcode_res);
-                    if let Ok(mut barcode_data) = barcode_res {
-                        entries.append(&mut barcode_data);
-                    }
-
-
-
-
-                }
-            });
+                });
+    }else {
+        
+    }
     return Ok(entries);
 }
 
@@ -102,7 +102,7 @@ pub fn attempt_process_file(path: &PathBuf, progress: Progress, ex: &ExifTool) -
         }
         (_filetype, _name) => {
             progress.bump();
-            let new_entries = process_raw_file(path, &ex);
+            let new_entries = process_raw_file(path, &ex, filetype.to_string_lossy().to_lowercase());
             // println!("new entries {:?}", new_entries);
             return new_entries;
         }

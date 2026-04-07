@@ -33,7 +33,6 @@ pub fn detect_barcode_1d(lst: &[(u8,u8,u8)]) -> Option<(u64, u16)> {
 
     let colors:Vec<&str> =  lst.iter().map(|x| closest_color(x.0, x.1, x.2)).collect();
 
-    println!("{colors:?}");
 
     let mut red = 0_i32;
     let mut red_start = 0_usize;
@@ -60,7 +59,6 @@ pub fn detect_barcode_1d(lst: &[(u8,u8,u8)]) -> Option<(u64, u16)> {
             }
             &"black" | &"white" => {}
             c => {
-                println!("{c}");
                 if last == "green" {
                     if green > 0
                         && red > 0
@@ -81,6 +79,10 @@ pub fn detect_barcode_1d(lst: &[(u8,u8,u8)]) -> Option<(u64, u16)> {
     /// (64 + 16 + 8) = total number of bars on barcode, including the colored ones
     /// sorts by how well the total size matches the expected size of the green start zone
     fn get_ratio_match_score(x: (usize, usize, i32)) -> i32 {
+        // this is a pretty dirty fix: todo: better solution, figure out why this can happen
+        if x.2 == 0 {
+            return 1000;
+        }
         ((x.1 - x.0) as i32 / (x.2 / 4) - (64 + 16 + 8)).abs()
     }
     strips.sort_by_key(|x| get_ratio_match_score(*x));
@@ -89,7 +91,6 @@ pub fn detect_barcode_1d(lst: &[(u8,u8,u8)]) -> Option<(u64, u16)> {
 
     if strips.len() > 0 {
         let (start, end, green_size) = strips[0];
-        println!("ratio: {}", get_ratio_match_score(strips[0]));
         if get_ratio_match_score(strips[0]) <= green_size / 10 {
             const FORMAT_CHUNKS: usize = 4 + 64 + 16 + 4;
             let chunk_size = (end - start) / FORMAT_CHUNKS;

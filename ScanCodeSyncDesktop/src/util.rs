@@ -1,6 +1,9 @@
-use std::{fs::{self, read_dir}, path::{Path, PathBuf}};
+use std::{fs::{self, read_dir}, path::{Path, PathBuf}, sync::LazyLock};
+use ffmpeg_sidecar::paths::ffmpeg_path;
 use macroquad::{miniquad, window::Conf};
 use rayon::prelude::*;
+use std::process::Command;
+use std::collections::BTreeSet;
 
 use anyhow::{self, Context};
 use atomic_progress::Progress;
@@ -155,4 +158,48 @@ pub fn is_magick_installed() -> bool {
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false)
+}
+
+
+pub static FFMPEG_FRMATS: LazyLock<BTreeSet<String>> = LazyLock::new(|| {
+    let l = get_supported_extensions_set();
+    println!("ffmpeg formats {}", l.len());
+    return l;
+});
+
+fn get_supported_extensions_set() -> BTreeSet<String> {
+    let mut extensions = BTreeSet::new();
+
+    let output = Command::new(ffmpeg_path())
+        .args(["-hide_banner", "-formats"])
+        .output()
+        .expect("Failed to run FFmpeg");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    for line in stdout.lines().chain(stderr.lines()) {
+        let line = line.trim_start();
+        let mut parts = line.split_whitespace();
+
+        let flags = match parts.next() {
+            Some(flags) => flags,
+            None => continue,
+        };
+
+        let format_name = match parts.next() {
+            Some(format_name) => format_name,
+            None => continue,
+        };
+
+        if !(flags.contains('D') || flags.contains('E')) || format_name == "=" {
+            continue;
+        }
+
+        for ext in format_name.split(',').filter(|ext| !ext.is_empty()) {
+            extensions.insert(ext.to_string());
+        }
+    }
+
+    extensions
 }
