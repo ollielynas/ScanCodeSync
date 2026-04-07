@@ -345,6 +345,7 @@ function App() {
             <QrMetadataDisplay />
             <BarcodeDisplay />
             <button
+              className="scs-button-secondary w-full"
               onClick={async () => {
                 console.log(DEVICE_ID);
                 const { audioContext } = await fskTransmit(

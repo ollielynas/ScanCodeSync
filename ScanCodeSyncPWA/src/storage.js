@@ -37,3 +37,15 @@ export const listFiles = async () => {
   }
   return entries;
 };
+
+export const downloadFile = async (filename) => {
+  const file = await loadFileAsBlob(filename);
+  const url = URL.createObjectURL(file);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+
+  URL.revokeObjectURL(url);
+};

@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, time::Duration};
 use anyhow::{anyhow, Context};
 use atomic_progress::Progress;
 use exiftool::ExifTool;
@@ -6,7 +6,7 @@ use ffmpeg_sidecar::{self, command::FfmpegCommand, event::FfmpegEvent};
 use image::{GrayImage, ImageBuffer};
 use rqrr::PreparedImage;
 
-use crate::data::{data_entry::{TimelineEntry, DataValue, DeviceId, DeviceTime}, file_metadata::{self, get_creation_time_ms, get_device_id}};
+use crate::data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, file_metadata::{self, get_creation_time_ms, get_device_id}, get_barcode::detect_barcodes};
 
 
 fn process_csv_text(text: String) -> Vec<TimelineEntry> {
@@ -49,7 +49,8 @@ fn process_raw_file(path: &PathBuf, ex: &ExifTool ) -> anyhow::Result<Vec<Timeli
     FfmpegCommand::new()
             .input(path.to_str().context("path contained non utf8 chars")?)
             .rawvideo()          // shorthand for: -f rawvideo -pix_fmt rgb24 pipe:1
-            .args(["-vf", "fps=3,scale=1080:-1"])
+            .duration("45")
+            .args(["-vf", "fps=10,scale=1080:-1"])
             .spawn()?
             .iter()?
             .for_each(|event| {
@@ -67,6 +68,8 @@ fn process_raw_file(path: &PathBuf, ex: &ExifTool ) -> anyhow::Result<Vec<Timeli
                         device_id: camera_id.clone(),
                         internal_clock: creation_time + (frame.timestamp * 1000.0).round() as u64,
                     };
+
+                    let barcode_data = detect_barcodes(&frame.data, frame.width, frame.height, &time);
 
 
 

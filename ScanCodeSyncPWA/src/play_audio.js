@@ -1,8 +1,7 @@
-// this was made w/ claude so who knows if it works
-
 const BARKER_CODE = [1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0];
 const FREQ_ZERO = 1200;
 const FREQ_ONE = 2200;
+let activePlaybackSource = null;
 
 function bigIntTo64Bits(n) {
   const bits = [];
@@ -16,36 +15,47 @@ function u16ToBits(n) {
   return bits;
 }
 
-function gfMul(a, b, prim = 0x11d) {
-  let r = 0;
-  while (b > 0) {
-    if (b & 1) r ^= a;
-    a <<= 1;
-    if (a & 0x100) a ^= prim;
-    b >>= 1;
+const GF_EXP = new Uint8Array(512);
+const GF_LOG = new Uint8Array(256);
+(function buildTables() {
+  let x = 1;
+  for (let i = 0; i < 255; i++) {
+    GF_EXP[i] = x;
+    GF_LOG[x] = i;
+    x <<= 1;
+    if (x & 0x100) x ^= 0x11d;
   }
-  return r;
+  for (let i = 255; i < 512; i++) GF_EXP[i] = GF_EXP[i - 255];
+})();
+function gfMul(a, b) {
+  if (a === 0 || b === 0) return 0;
+  return GF_EXP[GF_LOG[a] + GF_LOG[b]];
 }
-
+function gfPow(x, power) {
+  return GF_EXP[(GF_LOG[x] * power) % 255];
+}
 function rsEncode(msg, nsym) {
   let g = [1];
   for (let i = 0; i < nsym; i++) {
-    const alpha = Math.pow(2, i) % 256;
+    const root = gfPow(2, i);
     const ng = new Array(g.length + 1).fill(0);
     for (let j = 0; j < g.length; j++) {
       ng[j] ^= g[j];
-      ng[j + 1] ^= gfMul(g[j], alpha || 1);
+      ng[j + 1] ^= gfMul(g[j], root);
     }
     g = ng;
   }
-  let rem = [...msg];
-  for (let i = 0; i < nsym; i++) rem.push(0);
-  for (let i = 0; i < msg.length; i++) {
-    const coef = rem[i];
-    if (coef !== 0)
-      for (let j = 1; j < g.length; j++) rem[i + j] ^= gfMul(g[j], coef);
+
+  const parity = new Array(nsym).fill(0);
+  for (const m of msg) {
+    const feedback = m ^ parity[0];
+    for (let i = 0; i < nsym - 1; i++) {
+      parity[i] = parity[i + 1] ^ gfMul(g[i + 1], feedback);
+    }
+    parity[nsym - 1] = gfMul(g[nsym], feedback);
   }
-  return rem.slice(msg.length);
+
+  return parity;
 }
 
 function buildBitstream(epochMs, deviceId) {
@@ -66,6 +76,25 @@ function buildBitstream(epochMs, deviceId) {
     for (let i = 7; i >= 0; i--) rsBits.push((b >> i) & 1);
 
   return [...BARKER_CODE, ...epochBits, ...idBits, ...rsBits];
+}
+
+function stopActivePlayback() {
+  if (!activePlaybackSource) return;
+
+  try {
+    activePlaybackSource.onended = null;
+    activePlaybackSource.stop();
+  } catch {
+    // Ignore sources that have already ended or were never started.
+  }
+
+  try {
+    activePlaybackSource.disconnect();
+  } catch {
+    // Ignore already-disconnected nodes.
+  }
+
+  activePlaybackSource = null;
 }
 
 /**
@@ -113,9 +142,20 @@ export async function fskTransmit(
     }
   }
 
+  stopActivePlayback();
+
   const source = ctx.createBufferSource();
   source.buffer = buffer;
   source.connect(ctx.destination);
+  source.onended = () => {
+    if (activePlaybackSource === source) activePlaybackSource = null;
+    try {
+      source.disconnect();
+    } catch {
+      // Ignore already-disconnected nodes.
+    }
+  };
+  activePlaybackSource = source;
   source.start(ctx.currentTime + delayMs / 1000);
 
   const durationMs = Math.round((buffer.length / sampleRate) * 1000);

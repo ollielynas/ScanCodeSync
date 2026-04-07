@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { getOrCreateDeviceId } from "./device_id";
-import { saveFile } from "./storage";
+import { downloadFile, saveFile } from "./storage";
 const TakePhotoScan = () => {
   const inputRef = useRef(null);
 
@@ -13,6 +13,13 @@ const TakePhotoScan = () => {
       `DEVICE_ID:${getOrCreateDeviceId()}TIMESTAMP:${now}-${file.name}`,
       file,
     );
+
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name; // or `filename` if you want the full stored name
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
