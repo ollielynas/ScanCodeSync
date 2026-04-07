@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useCookies } from "react-cookie";
 import "./App.css";
 import BarcodeDisplay from "./Barcode";
@@ -6,6 +6,7 @@ import { getOrCreateDeviceId } from "./device_id";
 import InstallPWA from "./Pwa";
 import QrMetadataDisplay from "./QRCode";
 import TakePhotoScan from "./Scan";
+import { fskTransmit } from "./play_audio";
 const DEVICE_ID = getOrCreateDeviceId();
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
   ];
 
   const [cookies, setCookie] = useCookies(cookieKeys);
+  const audioCtxRef = useRef(null);
 
   const cookieOptions = { path: "/", maxAge: 60 * 60 * 24 * 365 };
 
@@ -80,6 +82,8 @@ function App() {
   const hasPending = Object.keys(cookies.pendingChanges ?? {}).length > 0;
   const hasLog = !!(cookies.changeLog ?? "");
 
+  console.log(DEVICE_ID);
+
   return (
     <main className="mx-auto flex h-dvh w-full max-w-6xl flex-col gap-3 overflow-hidden p-3 md:min-h-screen md:gap-6 md:overflow-visible md:p-8">
       <header className="scs-card p-3 md:p-6">
@@ -89,6 +93,7 @@ function App() {
         <h1 className="text-xl font-semibold text-slate-900 md:text-3xl">
           Production Metadata Console
         </h1>
+        <p>device id: {DEVICE_ID}</p>
       </header>
 
       <section className="flex min-h-0 flex-1 flex-col gap-3 md:grid md:grid-cols-2 md:gap-6">
@@ -339,6 +344,20 @@ function App() {
           <div className="grid gap-2 sm:grid-cols-2">
             <QrMetadataDisplay />
             <BarcodeDisplay />
+            <button
+              onClick={async () => {
+                console.log(DEVICE_ID);
+                const { audioContext } = await fskTransmit(
+                  Number(DEVICE_ID),
+                  120,
+                  400,
+                  audioCtxRef.current,
+                );
+                audioCtxRef.current = audioContext;
+              }}
+            >
+              Play Audio Signature
+            </button>
             <TakePhotoScan />
             <InstallPWA />
           </div>
