@@ -7,3 +7,6 @@ wix314-binaries
 ssh_password.txt
 project.tar.gz
 ScanCodeSync.dmg
+.flatpak-builder
+ScanCodeSyncDesktop/ScanCodeSync.flatpak
+ScanCodeSyncDesktop/__pycache__/build_linux.cpython-314.pyc

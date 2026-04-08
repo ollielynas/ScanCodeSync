@@ -9,6 +9,7 @@ from pathlib import Path
 
 import toml
 
+import ScanCodeSyncDesktop.build_linux as linux
 import ScanCodeSyncDesktop.build_macos_ssh as macos
 
 
@@ -98,7 +99,7 @@ def scan_releases(website_dir: str) -> list[dict]:
         files = sorted(
             f.name
             for f in entry.iterdir()
-            if f.is_file() and f.suffix.lower() in {".msi", ".msix", ".dmg"}
+            if f.is_file() and f.suffix.lower() in {".msi", ".msix", ".dmg", ".flatpak"}
         )
 
         if files:
@@ -226,11 +227,22 @@ def build_msix(version, exe_path):
         return None
 
 
-def build_linux(): ...
+def build_linux():
+    if input("would you like to build for Linux? [y/n]") in ["n", "N"]:
+        return False
+    return linux.build_for_linux_using_wsl()
+
+
 def build_macos():
     if input("would you like to build for MacOS? [y/n]") in ["n", "N"]:
         return False
     return macos.run_build_rust_over_ssh()
+
+
+def build_windows():
+    if input("would you like to build for Windows? [y/n]") in ["n", "N"]:
+        return False
+    return True
 
 
 def run_wack(msix_path: Path, report_dir: Path) -> Path | None:
@@ -343,31 +355,38 @@ def main():
             toml.dump(data, f)
         print(f"✅ Updated Cargo.toml to v{new_version}")
 
-    # 3. Build MSI
-    print(f"🚀 Compiling MSI for v{new_version}...")
-    try:
-        subprocess.run(
-            ["cargo", "wix", "--bin-path", WIX_BIN_PATH],
-            cwd=RUST_PROJECT_DIR,
-            check=True,
-        )
-    except subprocess.CalledProcessError:
-        print("❌ Build failed. Check the output above.")
-        return
-
-    # 4. Build MSIX
-    exe_path = Path(RUST_PROJECT_DIR) / "target" / "release" / "ScanCodeSyncDesktop.exe"
     msix_file = None
-    if exe_path.exists():
-        msix_file = build_msix(new_version, exe_path)
+    if build_windows():
+        # 3. Build MSI
+        print(f"🚀 Compiling MSI for v{new_version}...")
+        try:
+            subprocess.run(
+                ["cargo", "wix", "--bin-path", WIX_BIN_PATH],
+                cwd=RUST_PROJECT_DIR,
+                check=True,
+            )
+        except subprocess.CalledProcessError:
+            print("❌ Build failed. Check the output above.")
+            return
+
+        # 4. Build MSIX
+        exe_path = (
+            Path(RUST_PROJECT_DIR) / "target" / "release" / "ScanCodeSyncDesktop.exe"
+        )
+        if exe_path.exists():
+            msix_file = build_msix(new_version, exe_path)
+        else:
+            print(f"⚠️  Could not find .exe at {exe_path} — skipping MSIX.")
     else:
-        print(f"⚠️  Could not find .exe at {exe_path} — skipping MSIX.")
+        print("⏭️  Skipping Windows build.")
 
     # 5. Move files into their version-scoped folder
     dest_path = Path(WEBSITE_DIR) / new_version
     dest_path.mkdir(parents=True, exist_ok=True)
     moved_files = []
     dmg_path = Path(RUST_PROJECT_DIR) / "ScanCodeSync.dmg"
+    # Linux build writes ScanCodeSync.flatpak to the workspace root by default.
+    fp_candidates = [Path("ScanCodeSync.flatpak"), Path(RUST_PROJECT_DIR) / "ScanCodeSync.flatpak"]
     if os.path.exists(dmg_path):
         os.remove(dmg_path)
     if build_macos():
@@ -381,6 +400,26 @@ def main():
                 final_file,
             )
             moved_files.append(f"ScanCodeSync-{new_version}.dmg")
+
+    for fp_path in fp_candidates:
+        if fp_path.exists():
+            os.remove(fp_path)
+    if build_linux():
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        # Change the working directory to the script's folder
+        os.chdir(script_dir)
+        built_fp = next((p for p in fp_candidates if p.exists()), None)
+        if built_fp:
+            final_file = dest_path / f"ScanCodeSync-{new_version}.flatpak"
+            shutil.copy2(
+                built_fp,
+                final_file,
+            )
+            moved_files.append(f"ScanCodeSync-{new_version}.flatpak")
+            print(f"  -> Moved: {final_file.name}")
+        else:
+            print("⚠️  Linux build completed but no .flatpak artifact was found.")
+
     wix_path = Path(RUST_PROJECT_DIR) / "target" / "wix"
 
     for file in wix_path.glob("*.msi"):

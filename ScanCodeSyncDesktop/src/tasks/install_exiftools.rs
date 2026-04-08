@@ -193,7 +193,7 @@ pub fn install_exiftool(progress: &Progress) -> anyhow::Result<()> {
         }
     }
 
-    Err(anyhow!(
+    Err(anyhow::anyhow!(
         "No supported package manager found. Please install ExifTool manually: https://exiftool.org/install.html"
     ))
 }

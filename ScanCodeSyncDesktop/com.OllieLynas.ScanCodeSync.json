@@ -1,0 +1,35 @@
+{
+  "app-id": "com.OllieLynas.ScanCodeSync",
+  "runtime": "org.freedesktop.Platform",
+  "runtime-version": "24.08",
+  "sdk": "org.freedesktop.Sdk",
+  "sdk-extensions": ["org.freedesktop.Sdk.Extension.rust-stable"],
+  "command": "ScanCodeSync",
+  "finish-args": [
+    "--share=ipc",
+    "--socket=x11",
+    "--socket=wayland",
+    "--device=all",
+    "--filesystem=home"
+  ],
+  "build-options": {
+    "append-path": "/usr/lib/sdk/rust-stable/bin",
+    "build-args": ["--share=network"]
+  },
+  "modules": [
+    {
+      "name": "scancodesync",
+      "buildsystem": "simple",
+      "build-commands": [
+        ". /usr/lib/sdk/rust-stable/enable.sh; cargo build --release",
+        "install -D target/release/ScanCodeSyncDesktop /app/bin/ScanCodeSync"
+      ],
+      "sources": [
+        {
+          "type": "dir",
+          "path": "."
+        }
+      ]
+    }
+  ]
+}
