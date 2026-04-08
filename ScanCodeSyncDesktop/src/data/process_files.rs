@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf, time::Duration};
+use std::{fs, path::PathBuf, process::{Command, Stdio}, time::Duration};
 use anyhow::{anyhow, Context};
 use atomic_progress::Progress;
 use exiftool::ExifTool;
@@ -56,7 +56,6 @@ fn process_raw_data(data: &[u8], height: u32, width: u32, entries: &mut Vec<Time
         internal_clock: creation_time + (timestamp * 1000.0).round() as u64,
     };
     let barcode_res = detect_barcodes(&data, width, height, &time);
-    println!("res{:?}", barcode_res);
     if let Ok(mut barcode_data) = barcode_res {
         entries.append(&mut barcode_data);
     }
@@ -84,7 +83,36 @@ fn process_raw_file(path: &PathBuf, ex: &ExifTool, filetype: String ) -> anyhow:
                     }
                 });
     }else {
-        
+        let output = Command::new("magick")
+            .args(["identify", "-format", "%w %h"])
+            .arg(path)
+            .output()
+            .expect("Failed to execute command");
+
+        let result = String::from_utf8_lossy(&output.stdout);
+        let dims: Vec<&str> = result.split_whitespace().collect();
+
+        let mut width: u32 = 0;
+        let mut height: u32 = 0;
+        if dims.len() == 2 {
+                width = dims[0].parse().unwrap_or(0);
+                height = dims[1].parse().unwrap_or(0);
+        }
+
+        if width > 0 && height > 0 {
+            let child = Command::new("magick")
+                .arg(&path)
+                .args(["-depth", "8", "rgb:-"])
+                .stdout(Stdio::piped())
+                .spawn()?;
+
+            if let Ok(output) = child.wait_with_output() {
+                process_raw_data(&output.stdout, height, width, &mut entries, &camera_id, creation_time, 0.0);
+            }
+
+        }
+
+
     }
     return Ok(entries);
 }

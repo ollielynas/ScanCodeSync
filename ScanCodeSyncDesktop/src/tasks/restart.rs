@@ -1,6 +1,6 @@
 use std::{path::{PathBuf, Prefix}, process::{Command, exit}, thread};
 
-use anyhow::bail;
+use anyhow::{self, Context, bail};
 use atomic_progress::Progress;
 use rfd::MessageDialogResult;
 
@@ -182,13 +182,11 @@ pub fn install_exiftool(progress: &Progress) -> anyhow::Result<()> {
                 return Ok(());
             }
 
-            return Err(anyhow!("{pm} failed to install ExifTool"));
+            return Err(anyhow::anyhow!("{pm} failed to install ExifTool"));
         }
     }
 
-    Err(anyhow!(
-        "No supported package manager found. Please install ExifTool manually: https://exiftool.org/install.html"
-    ))
+    bail!("No supported package manager found. Please install ExifTool manually: https://exiftool.org/install.html")
 }
 
 #[cfg(target_os = "macos")]
@@ -211,6 +209,6 @@ pub fn install_exiftool(progress: &Progress) -> anyhow::Result<()> {
     if status.success() {
         Ok(())
     } else {
-        Err(anyhow!("Homebrew failed to install ExifTool"))
+        Err(anyhow::anyhow!("Homebrew failed to install ExifTool"))
     }
 }

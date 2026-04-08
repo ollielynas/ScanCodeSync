@@ -1,20 +1,14 @@
 [package]
 name = "ScanCodeSyncDesktop"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2024"
-license="GPL-3.0"
-authors = ["Ollie Lynas <sync@ollielynas.com>"]
+license = "GPL-3.0"
+authors = [ "Ollie Lynas <sync@ollielynas.com>",]
 homepage = "https://sync-home.ollielynas.com"
-
-
-[package.metadata.wix]
-# product-icon = "src/favicon.png"
-product-icon = "src/favicon.ico"
 
 [dependencies]
 anyhow = "1.0.102"
 atomic-progress = "0.1.2"
-catppuccin-egui = { version = "5.7", default-features = false, features = ["egui31"] }
 chrono = "0.4.44"
 crossbeam-channel = "0.5.15"
 directories = "6.0.0"
@@ -29,17 +23,21 @@ palette = "0.7.6"
 rayon = "1.11.0"
 rfd = "0.17.2"
 rqrr = "0.10.1"
-serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.149"
 typetag = "0.2.21"
 
-# # for use with the flamegraph
-# [profile.release]
-# debug = true
+[dependencies.catppuccin-egui]
+version = "5.7"
+default-features = false
+features = [ "egui31",]
 
+[dependencies.serde]
+version = "1.0"
+features = [ "derive",]
+
+[package.metadata.wix]
+product-icon = "src/favicon.ico"
 
 [package.metadata.dist]
-# This tells cargo-dist which installers to create
-installers = ["msi", "powershell", "shell"]
-# Targets for Windows, macOS, and Linux
-targets = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu", "apple-darwin"]
+installers = [ "msi", "powershell", "shell",]
+targets = [ "x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu", "apple-darwin",]
