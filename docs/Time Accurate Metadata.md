@@ -73,9 +73,26 @@ that then gives you a barcode that looks something like this:
 
 On this example the time is encoded using 32 bits but in reality 64 bits will be needed to encode the EPOCH time. 
 
+
+
+
 With the current time encoded on the left and the device id on the right. If the shutter speed of the camera is slow the more precise codes become a gray color. This will need to be interpreted differently by the [Metadata reader & File Sorting](Metadata%20reader%20&%20File%20Sorting.md) software. perhaps if the format is in a video the changes of the shade of gray between frames can be used to get a more accurate measure of the time
 
-This approach can be modified for video. In order to prevent frames from smearing together 
+This approach can be modified for video.  
+
+
+**Solution 2 - Qr Codes**
+A single qr code cannot encode the current time becuase as the screen refreshes the qr code will be split in two.
+
+on fast cameras the qr code will change becuase of screen tearing.
+
+on slow cameras the qr codes will layer on top of each other
+
+this can be solved with two strips of qr codes. On the left is a vertical strip of qr oces that all read the same time. this solves problem 1. on the right is a vertical list of qr codes that update with increaseingly less frequincy. this allows use to sacrafice as much accuracy as we need in order to get a clear qr code 
+
+
+the main problem with this approach is speed. Processing qr codes can be slow.
+
 # Audio
 
 In order to get accurate timecodes with audio, an audio file should be generated for a time in the very near future (like 10-20ms, depending on how long it is likely going to take). 

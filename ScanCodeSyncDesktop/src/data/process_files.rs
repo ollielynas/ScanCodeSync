@@ -38,24 +38,67 @@ fn scan_qr(data: &[u8], width: u32, height: u32) -> Vec<String> {
     prepared
         .detect_grids()
         .iter()
-        .filter_map(|g| g.decode().ok())
+        .filter_map(|g| {
+            println!("found grid {:?}", g.decode());
+            g.decode().ok()
+        })
         .map(|(_, content)| content)
         .collect()
 }
 
 
-fn process_raw_data(data: &[u8], height: u32, width: u32, entries: &mut Vec<TimelineEntry>, camera_id: &DeviceId, creation_time: u64, timestamp: f32) {
-    for s in scan_qr(data, width, height) {
-        entries.append(&mut process_csv_text(s));
+fn process_timecodes_from_string(codes: Vec<String>) -> Option<DeviceTime> {
+    let mut max_time: u64 = 0;
+    let mut id: u16 = 0;
+    for c in codes {
+        let (a,b) = c.split_once("-")?;
+        max_time = a.parse::<u64>().ok()?.max(max_time);
+        id = b.parse::<u16>().ok()?;
     }
 
+    if max_time != 0 {
+        return Some(
+            DeviceTime { internal_clock: max_time, device_id: DeviceId::ClientId(id) }
+        )
+    }else {
+        return None;
+    }
+}
 
+fn process_raw_data(data: &mut [u8], height: u32, width: u32, entries: &mut Vec<TimelineEntry>, camera_id: &DeviceId, creation_time: u64, timestamp: f32) {
     let time = DeviceTime {
         // I should try to avoid this clone
         device_id: camera_id.clone(),
         internal_clock: creation_time + (timestamp * 1000.0).round() as u64,
     };
-    let barcode_res = detect_barcodes(&data, width, height, &time);
+
+    let mut timecode_qr_codes = vec![];
+
+    for s in scan_qr(data, width, height) {
+        if s.contains(",") {
+            // assume csv data
+            entries.append(&mut process_csv_text(s));
+            return;
+        } else {
+            // otherwise assume timecode data
+            timecode_qr_codes.push(s);
+        }
+    }
+
+    if let Some(scanned_time) = process_timecodes_from_string(timecode_qr_codes) {
+        entries.push(
+            TimelineEntry {
+                time: scanned_time,
+                val: DataValue::ClockOffset(time.clone()),
+            }
+        );
+        // assume there is no qr code to scan at this point
+        return;
+    };
+
+
+
+    let barcode_res = detect_barcodes(data, width, height, &time);
     if let Ok(mut barcode_data) = barcode_res {
         entries.append(&mut barcode_data);
     }
@@ -78,8 +121,8 @@ fn process_raw_file(path: &PathBuf, ex: &ExifTool, filetype: String ) -> anyhow:
                 .spawn()?
                 .iter()?
                 .for_each(|event| {
-                    if let FfmpegEvent::OutputFrame(frame) = event {
-                        process_raw_data(&frame.data, frame.height, frame.width, &mut entries, &camera_id, creation_time, frame.timestamp);
+                    if let FfmpegEvent::OutputFrame(mut frame) = event {
+                        process_raw_data(&mut frame.data, frame.height, frame.width, &mut entries, &camera_id, creation_time, frame.timestamp);
                     }
                 });
     }else {
@@ -106,8 +149,9 @@ fn process_raw_file(path: &PathBuf, ex: &ExifTool, filetype: String ) -> anyhow:
                 .stdout(Stdio::piped())
                 .spawn()?;
 
-            if let Ok(output) = child.wait_with_output() {
-                process_raw_data(&output.stdout, height, width, &mut entries, &camera_id, creation_time, 0.0);
+            if let Ok(mut output) = child.wait_with_output() {
+                // let height = output.stdout.len() as u32 / (3 * 1080);
+                process_raw_data(&mut output.stdout, height, width, &mut entries, &camera_id, creation_time, 0.0);
             }
 
         }
@@ -129,8 +173,8 @@ pub fn attempt_process_file(path: &PathBuf, progress: Progress, ex: &ExifTool) -
             return anyhow::Ok(process_csv_text(fs::read_to_string(path)?));
         }
         (_filetype, _name) => {
-            progress.bump();
             let new_entries = process_raw_file(path, &ex, filetype.to_string_lossy().to_lowercase());
+            progress.bump();
             // println!("new entries {:?}", new_entries);
             return new_entries;
         }

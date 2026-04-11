@@ -1,6 +1,8 @@
-use crate::data::data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry};
+use crate::data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, get_barcode, image_processing_algorithm::selective_blur};
 
+use image::{DynamicImage, ImageBuffer, RgbImage};
 use palette::{Lab, Srgb, color_difference::DeltaE, IntoColor};
+use rayon::iter::{ParallelBridge, ParallelIterator};
 
 const COLORS: &[(&str, (u8, u8, u8))] = &[
     ("red",     (255, 0,   0)),
@@ -15,7 +17,60 @@ const COLORS: &[(&str, (u8, u8, u8))] = &[
     // ("gray",    (128, 128, 128)),
 ];
 
+
+fn pre_process(data: &mut [u8], height: u32, width: u32) {
+
+    let id = format!("debug_data/{}{}{}.png", data[0],data[1],data[2]);
+
+    selective_blur(data, width as usize, height as usize);
+    selective_blur(data, width as usize, height as usize);
+    selective_blur(data, width as usize, height as usize);
+
+    data.chunks_exact_mut(3).par_bridge().for_each(|x| {
+        let lm = (((150 * x[0] as u16) + (100 * x[1] as u16) + (5 * x[2] as u16)) >> 8) as u8;
+
+        if lm < 30 {
+            x[0] = 0;
+            x[1] = 0;
+            x[2] = 0;
+        }else {
+            if x[0] > x[1].saturating_add(x[2]) {
+                x[0] = 255;
+                x[1] = 0;
+                x[2] = 0;
+            }else if x[1] / 3 > x[2] / 2 {
+                x[0] = 0;
+                x[1] = 255;
+                x[2] = 0;
+            }else if lm > 50 {
+                x[0] = 255;
+                x[1] = 255;
+                x[2] = 255;
+            }
+        }
+    });
+
+    selective_blur(data, width as usize, height as usize);
+
+    #[cfg(debug_assertions)]
+        {
+            use image::{ImageBuffer, RgbImage};
+
+            let img: RgbImage = ImageBuffer::from_raw(width, height, data.to_vec())
+                .expect("Failed to create image from buffer");
+
+            // img.save(&id).expect("Failed to save debug image");
+            // open::that(&id).expect("Failed to open image");
+        }
+}
+
 fn closest_color(r: u8, g: u8, b: u8) -> &'static str {
+
+    if (r,g,b) == (0,0,0) {return "black"}
+    if (r,g,b) == (255,0,0) {return "red"}
+    if (r,g,b) == (0,255,0) {return "green"}
+    return "white";
+
     let target: Lab = Srgb::new(r as f32 / 255., g as f32 / 255., b as f32 / 255.)
         .into_color();
 
@@ -27,12 +82,15 @@ fn closest_color(r: u8, g: u8, b: u8) -> &'static str {
         })
         .map(|(name, _)| *name)
         .unwrap()
-}
 
+
+}
+/// this needs to be completly re written
 pub fn detect_barcode_1d(lst: &[(u8,u8,u8)]) -> Option<(u64, u16)> {
 
     let colors:Vec<&str> =  lst.iter().map(|x| closest_color(x.0, x.1, x.2)).collect();
 
+    // println!("{:?}", colors);
 
     let mut red = 0_i32;
     let mut red_start = 0_usize;
@@ -62,7 +120,8 @@ pub fn detect_barcode_1d(lst: &[(u8,u8,u8)]) -> Option<(u64, u16)> {
                 if last == "green" {
                     if green > 0
                         && red > 0
-                        && (green-red).abs() <= (red) as i32 {
+                        // && (green-red).abs() <= (red) as i32
+                        {
                             strips.push((red_start, i, red));
                     }
                 }
@@ -83,7 +142,7 @@ pub fn detect_barcode_1d(lst: &[(u8,u8,u8)]) -> Option<(u64, u16)> {
         if x.2 == 0 {
             return 1000;
         }
-        ((x.1 - x.0) as i32 / (x.2 / 4) - (64 + 16 + 8)).abs()
+        ((x.1 - x.0) as i32 / (x.2 / 4).max(1) - (64 + 16 + 8)).abs()
     }
     strips.sort_by_key(|x| get_ratio_match_score(*x));
     // bring the closest to the front
@@ -119,8 +178,8 @@ pub fn detect_barcode_1d(lst: &[(u8,u8,u8)]) -> Option<(u64, u16)> {
 }
 
 /// It would be best to avoid cloning this data
-pub fn get_h_row<'a>(height: u32, width: u32, data: &'a [u8]) -> Vec<(u8,u8,u8)> {
-    let row = height as usize;
+pub fn get_h_row<'a>(row_to_get: u32, width: u32, data: &'a [u8]) -> Vec<(u8,u8,u8)> {
+    let row = row_to_get as usize;
     let width = width as usize;
     let start = row * width * 3;
     data[start..start + width * 3]
@@ -128,14 +187,46 @@ pub fn get_h_row<'a>(height: u32, width: u32, data: &'a [u8]) -> Vec<(u8,u8,u8)>
         .map(|c| (c[0], c[1], c[2]))
         .collect()
 }
-pub fn detect_barcodes(data: &[u8], width: u32, height: u32, device_time: &DeviceTime) -> anyhow::Result<Vec<TimelineEntry>>  {
 
+pub fn get_v_col(col_to_get: u32, height: u32, width: u32, data: &[u8]) -> Vec<(u8, u8, u8)> {
+    let col = col_to_get as usize;
+    let height = height as usize;
+    let width = width as usize;
+    let stride = width * 3; // Number of bytes to skip to reach the next row
+
+    (0..height)
+        .map(|row| {
+            let start = (row * stride) + (col * 3);
+            (data[start], data[start + 1], data[start + 2])
+        })
+        .collect()
+}
+
+
+pub fn detect_barcodes(data: &mut [u8], width: u32, height: u32, device_time: &DeviceTime) -> anyhow::Result<Vec<TimelineEntry>>  {
+
+    // pre_process(data, height, width);
+
+    let mut center_strip: Vec<u8> = (0..10).into_iter().flat_map(|x| get_h_row(height/2 + x, width, &data))
+            .flat_map(|(r, g, b)| [r, g, b])
+            .collect();
+    let mut vertical_center_strip: Vec<u8> = (0..10).into_iter()
+        .flat_map(|x| get_v_col(width/2 + x, height, width, &data))
+        .flat_map(|(r, g, b)| [r, g, b])
+        .collect();
+
+
+    pre_process(center_strip.as_mut(), 10, width);
+    pre_process(vertical_center_strip.as_mut(), 10, height);
+
+    let barcode_row = detect_barcode_1d(get_h_row(5, width, &center_strip).as_slice());
+    let barcode_col = detect_barcode_1d(get_h_row(5, height, &vertical_center_strip).as_slice());
 
     let mut potential_readings = vec![];
 
-    let line_through_middle = detect_barcode_1d(&get_h_row(height/2, width, &data));
 
-     if let Some((timecode, id)) = line_through_middle {
+    for barcode in [barcode_row, barcode_col] {
+     if let Some((timecode, id)) = barcode {
          potential_readings.push(
              TimelineEntry {
                 time: DeviceTime { internal_clock: timecode, device_id: DeviceId::ClientId(id) },
@@ -144,6 +235,7 @@ pub fn detect_barcodes(data: &[u8], width: u32, height: u32, device_time: &Devic
          );
          println!("managed to read barcode");
      }
+    }
 
     return Ok(potential_readings);
 }

@@ -1,12 +1,13 @@
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { useCookies } from "react-cookie";
 import "./App.css";
 import BarcodeDisplay from "./Barcode";
 import { getOrCreateDeviceId } from "./device_id";
+import { fskTransmit } from "./play_audio";
 import InstallPWA from "./Pwa";
 import QrMetadataDisplay from "./QRCode";
 import TakePhotoScan from "./Scan";
-import { fskTransmit } from "./play_audio";
+import TimeQrDisplay from "./TimeQrDisplay";
 const DEVICE_ID = getOrCreateDeviceId();
 
 function App() {
@@ -344,6 +345,7 @@ function App() {
           <div className="grid gap-2 sm:grid-cols-2">
             <QrMetadataDisplay />
             <BarcodeDisplay />
+            <TimeQrDisplay />
             <button
               className="scs-button-secondary w-full"
               onClick={async () => {

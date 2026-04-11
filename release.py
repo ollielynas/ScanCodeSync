@@ -77,12 +77,10 @@ def increment_version(version_str):
 
 
 def is_version_dir(path: Path) -> bool:
-    """Returns True if the directory name looks like a semver string (e.g. 0.0.2)."""
     return path.is_dir() and bool(re.fullmatch(r"\d+\.\d+\.\d+", path.name))
 
 
 def version_sort_key(version_str: str):
-    """Converts '1.2.3' into (1, 2, 3) for correct numeric sorting."""
     return tuple(int(x) for x in version_str.split("."))
 
 
@@ -111,7 +109,6 @@ def scan_releases(website_dir: str) -> list[dict]:
 
 
 def render_release_card(release: dict, is_latest: bool) -> str:
-    """Renders a single version card as an HTML string."""
     version = release["version"]
     files = release["files"]
 
@@ -138,7 +135,7 @@ def update_releases_html(website_dir: str):
     releases = scan_releases(website_dir)
 
     if not releases:
-        print("⚠️  No release directories found — releases.html not updated.")
+        print("No release directories found — releases.html not updated.")
         return
 
     cards_html = "".join(
@@ -158,7 +155,7 @@ def update_releases_html(website_dir: str):
 <body>
     <div class="container">
         <h1>ScanCodeSync Releases</h1>
-        <p>Latest version: {latest_version} &mdash; page updated {date_str}</p>
+        <p>Latest version: {latest_version} - page updated {date_str}</p>
         {cards_html}
     </div>
 </body>
@@ -167,16 +164,16 @@ def update_releases_html(website_dir: str):
     releases_path = os.path.join(website_dir, "releases.html")
     with open(releases_path, "w") as f:
         f.write(content)
-    print(f"✅ Generated {releases_path} ({len(releases)} version(s) listed)")
+    print(f"Generated {releases_path} ({len(releases)} version(s) listed)")
 
 
 def build_msix(version, exe_path):
     if not os.path.exists(MAKEAPPX_PATH):
-        print(f"⚠️  makeappx.exe not found at {MAKEAPPX_PATH} — skipping MSIX build.")
-        print("    Install the Windows SDK and update MAKEAPPX_PATH in this script.")
+        print(f"makeappx.exe not found at {MAKEAPPX_PATH} — skipping MSIX build.")
+        print("Install the Windows SDK and update MAKEAPPX_PATH in this script.")
         return None
 
-    print(f"📦 Building MSIX for v{version}...")
+    print(f"Building MSIX for v{version}...")
 
     staging_dir = Path("msix_staging")
     if staging_dir.exists():
@@ -202,9 +199,7 @@ def build_msix(version, exe_path):
     if assets_src.exists():
         shutil.copytree(assets_src, staging_dir / "Assets")
     else:
-        print(
-            "⚠️  No Assets folder found — MSIX may fail Store validation without icons."
-        )
+        print("No Assets folder found — MSIX may fail Store validation without icons.")
 
     output_msix = staging_dir / f"ScanCodeSync_{version}.msix"
     try:
@@ -246,16 +241,7 @@ def build_windows():
 
 
 def run_wack(msix_path: Path, report_dir: Path) -> Path | None:
-    """
-    Runs the Windows App Certification Kit silently against an MSIX file
-    and writes the XML report into report_dir.
 
-    appcert.exe requires elevation (run this script as Administrator) and
-    cannot run inside a remote desktop / headless session — it needs an
-    interactive desktop to launch the tested app.
-
-    Returns the Path to the report file, or None on failure.
-    """
     if not os.path.exists(WACK_PATH):
         print(f"⚠️  appcert.exe not found at {WACK_PATH} — skipping WACK.")
         print(
@@ -299,7 +285,7 @@ def run_wack(msix_path: Path, report_dir: Path) -> Path | None:
             # Sniff the top-level PASS/FAIL out of the XML so we can log it
             report_text = report_path.read_text(encoding="utf-8", errors="replace")
             if 'OVERALL_RESULT="PASS"' in report_text:
-                print(f"✅ WACK result: PASS  — {report_path.name}")
+                print(f"✅ WACK result: PASS  - {report_path.name}")
             elif (
                 'OVERALL_RESULT="PASSED WITH WARNINGS"' in report_text
                 or "WARNING" in report_text
@@ -386,7 +372,10 @@ def main():
     moved_files = []
     dmg_path = Path(RUST_PROJECT_DIR) / "ScanCodeSync.dmg"
     # Linux build writes ScanCodeSync.flatpak to the workspace root by default.
-    fp_candidates = [Path("ScanCodeSync.flatpak"), Path(RUST_PROJECT_DIR) / "ScanCodeSync.flatpak"]
+    fp_candidates = [
+        Path("ScanCodeSync.flatpak"),
+        Path(RUST_PROJECT_DIR) / "ScanCodeSync.flatpak",
+    ]
     if os.path.exists(dmg_path):
         os.remove(dmg_path)
     if build_macos():
