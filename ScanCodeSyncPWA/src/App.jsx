@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useCookies } from "react-cookie";
 import "./App.css";
-import BarcodeDisplay from "./Barcode";
+// import BarcodeDisplay from "./Barcode";
 import { getOrCreateDeviceId } from "./device_id";
 import { fskTransmit } from "./play_audio";
 import InstallPWA from "./Pwa";
@@ -14,7 +14,9 @@ function App() {
   const [mobilePanel, setMobilePanel] = useState("controls");
 
   const cookieKeys = [
+    // this key is deprecated
     "isMaster",
+
     "isDirector",
     "isOperator",
     "productionName",
@@ -69,7 +71,7 @@ function App() {
 
   const getBool = (key) => cookies[key] === true || cookies[key] === "true";
 
-  const isMaster = getBool("isMaster");
+  // const isMaster = getBool("isMaster");
   const isDirector = getBool("isDirector");
   const isOperator = getBool("isOperator");
   const enableOperatorName = getBool("enableOperatorName");
@@ -127,7 +129,7 @@ function App() {
           }`}
         >
           <h2 className="text-lg font-semibold text-slate-900">Device Role</h2>
-          <label id="is_master_label" className="flex items-start gap-3">
+          {/* <label id="is_master_label" className="flex items-start gap-3">
             <input
               type="checkbox"
               id="is_master_checkbox"
@@ -143,16 +145,16 @@ function App() {
                 Enable only on one trusted timing source.
               </span>
             </span>
-          </label>
+          </label>*/}
 
-          {isMaster && (
+          {/* {isMaster && (
             <p
               id="is_master_warning"
               className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800"
             >
               Caution: only one master clock should be active.
             </p>
-          )}
+          )}*/}
 
           <label id="is_director_label" className="flex items-start gap-3">
             <input
@@ -290,9 +292,10 @@ function App() {
               {hasPending ? (
                 <p
                   id="unsaved_changes_warning"
-                  className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"
+                  className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-red-500 animate-bounce"
                 >
-                  Unsaved updates
+                  Unsaved changes, you changes do not have an effect until you
+                  save them.
                 </p>
               ) : (
                 <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
@@ -343,9 +346,18 @@ function App() {
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2">
-            <QrMetadataDisplay />
-            <BarcodeDisplay />
+            <p>
+              Take a photo or video of these qr codes on each camera before you
+              start.
+            </p>
             <TimeQrDisplay />
+
+            <p>
+              Take a photo or video of these qr codes after each day of
+              recording
+            </p>
+            <QrMetadataDisplay />
+            {/* <BarcodeDisplay />*/}
             <button
               className="scs-button-secondary w-full"
               onClick={async () => {
@@ -361,6 +373,11 @@ function App() {
             >
               Play Audio Signature
             </button>
+            <p>
+              if you are using more than one device you should scan the time qr
+              codes on the other devices. You can also scan all of the devices
+              with your production camera to sync them
+            </p>
             <TakePhotoScan />
             <InstallPWA />
           </div>

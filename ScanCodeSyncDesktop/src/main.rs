@@ -21,10 +21,12 @@ async fn main() {
 
     let version = env!("CARGO_PKG_VERSION");
 
+
+    if !cfg!(debug_assertions){
     rfd::MessageDialog::new().set_title("Beta Version")
         .set_description(format!("Warning, you are on version \n{}\nThis version is not feature complete.", version))
         .show();
-
+    }
 
 
     let mut state = State::default();
