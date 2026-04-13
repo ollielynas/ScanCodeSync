@@ -2,14 +2,18 @@ below is a list of database entries that can be created by a client and should b
 
 ```
 {
-  isMaster: bool
+  <!--deprecated-->
+  <!--isMaster: bool-->
+  
   isDirector: bool
   isOperator: bool
   
   productionName: String
   
-  enableOperatorName: bool
-  operatorName: String
+  <!--deprecated-->
+  <!--enableOperatorName: bool
+  operatorName: String-->
+  <!--to be replaced with the ability to name cameras and micrphones with a qr code or audio clip-->
   
   enableSceneName: bool
   sceneName: String

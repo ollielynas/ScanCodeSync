@@ -5,7 +5,7 @@ import { getOrCreateDeviceId } from "./device_id";
 
 const DEVICE_ID = getOrCreateDeviceId();
 const QR_COUNT = 3;
-const UPDATE_INTERVAL_MS = 33;
+const UPDATE_INTERVAL_MS = 5;
 const QR_UPDATE_STEPS_MS = [1, 173, 500];
 const QR_UPDATE_PHASE_MS = [0, 41, 137];
 const QR_HORIZONTAL_OFFSETS_PCT = [-6, 7, -5];
@@ -75,11 +75,12 @@ const TimeQrDisplay = () => {
     const heightPerTile =
       (contentHeight - GRID_GAP_PX * (QR_COUNT - 1)) / QR_COUNT;
 
-    const candidateTile = Math.floor(
-      Math.min(widthPerTile, heightPerTile),
-    );
+    const candidateTile = Math.floor(Math.min(widthPerTile, heightPerTile));
     const safeTile = Math.max(1, candidateTile);
-    const inner = Math.max(64, Math.floor((safeTile - TILE_BORDER_PX * 2) * TILE_INNER_RATIO));
+    const inner = Math.max(
+      64,
+      Math.floor((safeTile - TILE_BORDER_PX * 2) * TILE_INNER_RATIO),
+    );
 
     return { tileSizePx: safeTile, innerSizePx: inner };
   }, [viewport]);
@@ -91,7 +92,10 @@ const TimeQrDisplay = () => {
           <div
             onClick={() => setVisible(false)}
             className="fixed inset-0 z-[9999] cursor-pointer"
-            style={{ backgroundColor: "#F3F4F6", padding: `${OVERLAY_PADDING_PX}px` }}
+            style={{
+              backgroundColor: "#F3F4F6",
+              padding: `${OVERLAY_PADDING_PX}px`,
+            }}
           >
             <div
               className="grid h-full w-full"

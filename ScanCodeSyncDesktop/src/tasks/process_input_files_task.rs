@@ -4,7 +4,7 @@ use anyhow::bail;
 use atomic_progress::{Progress, ProgressBuilder};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{data::{data_entry::TimelineEntry, process_files::{self, attempt_process_file}, timeline::{self, Timeline}}, populate_field, task::Task, tasks::task_builders::{build_update_input_files_list_task, build_update_unsorted_files_list_task}, util::recurse_files};
+use crate::{data::{data_entry::{DataValue, DeviceTime, TimelineEntry}, file_metadata::{get_creation_time_ms, get_device_id}, process_files::{self, attempt_process_file}, timeline::{self, Timeline}}, populate_field, task::Task, tasks::task_builders::{build_update_input_files_list_task, build_update_unsorted_files_list_task}, util::recurse_files};
 
 // thread_local! {
 //     static EXIFTOOL: RefCell<Option<exiftool::ExifTool>> = RefCell::new(None);
@@ -80,7 +80,7 @@ impl Task for ProcessInputFilesTask {
             let ex = exiftool::ExifTool::new()?;
 
 
-            progress.set_total(files.len() as u64 * 2);
+            progress.set_total(files.len() as u64 + 1);
             let tl_entries: HashSet<TimelineEntry> = files.par_iter().map(|x| {
                 attempt_process_file(x, progress.clone(), &ex)
 
@@ -97,16 +97,41 @@ impl Task for ProcessInputFilesTask {
 
             progress.set_item("finished processing files");
             progress.set_total(files.len() as u64);
-            return Ok((vec![], timeline, unsorted_folder));
 
             for file in files {
                 let filename = file.file_stem().unwrap_or(OsStr::new("undefined")).to_string_lossy().to_string();
                 let filetype = file.extension().unwrap_or(OsStr::new(".file")).to_string_lossy().to_string();
-                progress.set_item(format!("moving file {}", filename));
 
-                fs::copy(&file,unsorted_folder.join(&format!("{}-{}.{}", filename, fastrand::u32(1000..9999), filetype)))?;
-                fs::remove_file(&file)?;
-                progress.bump();
+                let creation_time = match get_creation_time_ms(&file, &ex) {
+                    Ok(a) => a,
+                    Err(a) => {
+                        println!("creation time not found {}",a);
+                        continue;},
+                };
+                let camera_id = match get_device_id(&file, &ex) {
+                    Ok(a) =>   a,
+                    Err(a) => {
+                        println!("cam id not found {}",a);
+                        continue;},
+                };
+
+                let new_file_name = format!("DEVICE_ID{}TIMESTAMP{}-{}.{}", camera_id.to_string(), creation_time, filename, filetype);
+                let new_path = unsorted_folder.join(&new_file_name);
+
+                progress.set_item(format!("moving file {}", filename));
+                if fs::copy(&file,&new_path).is_ok() {
+                    if matches!(new_path.try_exists(), Ok(true)) {
+                        let _ = fs::remove_file(&file);
+                    }
+                };
+                timeline.entries.insert(
+                    TimelineEntry { time: DeviceTime {
+                        internal_clock: creation_time,
+                        device_id: camera_id,
+                    }
+                        ,
+                        val: DataValue::MediaCreated(new_path) }
+                );
             }
 
             return Ok((vec![], timeline, unsorted_folder))

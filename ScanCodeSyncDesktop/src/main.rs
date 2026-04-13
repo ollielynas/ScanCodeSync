@@ -1,5 +1,6 @@
-use std::time::{Duration, Instant};
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::{panic, time::{Duration, Instant}};
 use macroquad::{prelude::*, ui::widgets::Window, window};
 use egui_macroquad::egui;
 use rfd::MessageDialogResult;
@@ -16,11 +17,19 @@ pub mod data;
 pub mod util;
 pub mod macros;
 
+
 #[macroquad::main(window_conf)]
 async fn main() {
 
-    let version = env!("CARGO_PKG_VERSION");
+    panic::set_hook(Box::new(|a| {
+        rfd::MessageDialog::new()
+            .set_level(rfd::MessageLevel::Error)
+            .set_title("Program has crashed")
+            .set_description(format!("an error occurred:\n{}", a))
+            .show();
+    }));
 
+    let version = env!("CARGO_PKG_VERSION");
 
     if !cfg!(debug_assertions){
     rfd::MessageDialog::new().set_title("Beta Version")
@@ -32,7 +41,15 @@ async fn main() {
     let mut state = State::default();
     // let a = ffmpeg_sidecar::download::download_ffmpeg_package("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", get_project_dir().unwrap().cache_dir());
 
-    ffmpeg_sidecar::download::auto_download().unwrap();
+    match ffmpeg_sidecar::download::auto_download() {
+        Ok(_) => {},
+        Err(a) => {
+            println!("{:?}", a);
+            rfd::MessageDialog::new().set_title("FFMPEG failed to download").
+                set_description("please consider downloading ffmpeg yourself:\nhttps://www.google.com/search?q=how+to+install+ffmped+and+add+to+path")
+                .show();
+        },
+    };
     match exiftool::ExifTool::new() {
         Ok(_) => {println!("exiftool is installed")},
         Err(e) => {
@@ -60,7 +77,7 @@ async fn main() {
             state.restore_dropped_variables();
             state.update_tasks();
         }
-        if time_10000ms.elapsed() > Duration::from_millis(10000) {
+        if time_10000ms.elapsed() > Duration::from_millis(5000) {
             time_10000ms = Instant::now();
             let _ = state.add_task_without_duplicate(build_update_input_files_list_task());
         }

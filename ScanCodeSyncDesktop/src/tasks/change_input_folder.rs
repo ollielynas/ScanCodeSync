@@ -53,7 +53,9 @@ impl Task for ChangeInputFolderTask {
         self.handle = Some(thread::spawn(move || {
             progress.set_item("opening file dialogue");
 
-            path = rfd::FileDialog::new().set_can_create_directories(true).set_title("new input folder")
+            path = rfd::FileDialog::new().set_can_create_directories(true)
+                .set_directory(path)
+                .set_title("new input folder")
                 .pick_folder().ok_or(anyhow::anyhow!("no file was picked to be input"))?.to_path_buf();
 
             progress.bump();

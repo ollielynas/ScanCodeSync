@@ -44,7 +44,7 @@ impl Task for UpdateUnsortedFileListTask {
                 state.unsorted_folder.available(),
                 state.unsorted_files.available(),
                 ].iter().all(|x| *x) {
-                    let _ = state.new_files.depopulate(self.id)?;
+                    let _ = state.unsorted_files.depopulate(self.id)?;
                     values = UpdateUnsortedFileListValues {
                         unsorted_folder: state.unsorted_folder.depopulate(self.id)?.to_path_buf(),
                         unsorted_files: vec![],

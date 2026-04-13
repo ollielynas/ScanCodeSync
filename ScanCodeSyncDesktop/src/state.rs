@@ -33,9 +33,12 @@ impl Default for State {
             task_list: vec![],
         };
 
-        let _ = load_field!(new, input_folder);
-        let _ = load_field!(new, output_folder);
-        let tl = load_field!(new, timeline);
+        // load values from json
+        println!("loaded {:?}", load_field!(new, input_folder));
+        println!("loaded {:?}", load_field!(new, output_folder));
+        println!("loaded {:?}", load_field!(new, unsorted_files));
+        println!("loaded {:?}", load_field!(new, new_files));
+        println!("loaded {:?}", load_field!(new, timeline));
 
         return new;
     }
@@ -57,6 +60,7 @@ impl State {
     pub fn all_values(&mut self) ->  Vec<&mut dyn ValueHolderExt> {
         return vec![
             &mut self.timeline,
+
             &mut self.input_folder,
             &mut self.output_folder,
             &mut self.unsorted_folder,
@@ -124,6 +128,7 @@ impl State {
                     },
                     Err(e) => {
                         task.get_progress().set_item(format!("{e}"));
+                        // wait this is not corrrect, but i feel like I added it to fix somesort of bug
                         task.cancel_task(self);
                     },
                 }

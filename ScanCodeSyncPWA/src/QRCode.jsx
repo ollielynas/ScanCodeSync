@@ -41,7 +41,7 @@ const QrMetadataDisplay = () => {
       if (slideShow) {
         setIndex((index + 1) % chunks.length);
       }
-    }, 200);
+    }, 500);
 
     return () => clearInterval(interval);
   }, [slideShow, index, chunks]);

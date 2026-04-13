@@ -203,3 +203,47 @@ fn get_supported_extensions_set() -> BTreeSet<String> {
 
     extensions
 }
+
+pub fn get_base_media_type(path: &PathBuf) -> String {
+    let output = match Command::new("exiftool")
+        // This regex trims everything after the slash internally
+        .args(["-S", "-s3", "-p", "${mimetype;s/\\/.*//}", "-fast"])
+        .arg(path)
+        .output() {
+            Ok(a) => a,
+            Err(_) => return "unidentified file type".to_string()
+        };
+
+    String::from_utf8_lossy(&output.stdout).trim().to_string()
+}
+
+/// I should switch to the batch implementation for better speed.
+pub fn get_mime_type(path: &PathBuf) -> String {
+    let output = Command::new("exiftool")
+        .args(["-b", "-mimetype"])
+        .arg(path)
+        .output()
+        .expect("Failed to execute exiftool");
+
+    // Convert stdout bytes to a trimmed string
+    String::from_utf8_lossy(&output.stdout).trim().to_string()
+}
+
+pub fn get_batch_mimetypes(paths: Vec<&PathBuf>) -> anyhow::Result<Vec<(String, String)>> {
+    let output = Command::new("exiftool")
+        .args(["-T", "-S", "-mimetype", "-filename"]) // -T for tab-delimited, -S for short values
+        .args(&paths)
+        .output()?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    Ok(stdout.lines()
+        .filter_map(|line| {
+            let parts: Vec<&str> = line.split('\t').collect();
+            if parts.len() == 2 {
+                Some((parts[1].trim().to_string(), parts[0].trim().to_string()))
+            } else {
+                None
+            }
+        })
+        .collect())
+}

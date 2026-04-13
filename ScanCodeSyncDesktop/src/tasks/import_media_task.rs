@@ -2,9 +2,10 @@ use std::{ffi::OsStr, fs, hash::{DefaultHasher, Hash, Hasher}, path::{Path, Path
 
 use anyhow::bail;
 use atomic_progress::Progress;
+use egui_macroquad::egui::TextBuffer;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{populate_field, task::Task, tasks::task_builders::build_update_input_files_list_task, util::{format_filesize_human_readable, get_total_size_of_files, recurse_files}};
+use crate::{data::file_metadata::write_custom_metadata, populate_field, task::Task, tasks::task_builders::build_update_input_files_list_task, util::{format_filesize_human_readable, get_total_size_of_files, recurse_files}};
 
 
 
@@ -95,9 +96,10 @@ impl Task for ImportMediaTask {
 
             progress.set_total(paths.len() as u64);
             progress.set_pos(0);
-
+            let ex = exiftool::ExifTool::new()?;
             paths.par_iter().for_each(|file| {
-                progress.bump();
+
+                let _ = write_custom_metadata(&file, "OriginalFilePath", file.to_string_lossy().as_str(), &ex);
 
                 let name = file.file_name().unwrap_or(OsStr::new("unknown"));
                 progress.set_item(format!("copying {}", name.to_string_lossy()));
@@ -124,6 +126,7 @@ impl Task for ImportMediaTask {
                     Ok(_) => progress.set_item(format!("copied {}", name.to_string_lossy())),
                     Err(e) => progress.set_item(format!("failed to copy {}: {e}", name.to_string_lossy())),
                 }
+                progress.bump();
             });
 
             if delete_og {

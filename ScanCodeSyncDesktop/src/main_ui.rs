@@ -1,4 +1,4 @@
-use crate::{state::State, task::Task, tasks::task_builders::{build_import_media_task_folders, build_process_new_files_task, user_accessible_tasks}, util::truncate_front};
+use crate::{state::State, task::Task, tasks::task_builders::{build_import_media_task_folders, build_process_new_files_task, build_process_unsorted_files_task, user_accessible_tasks}, util::truncate_front};
 use egui_macroquad::egui;
 use macroquad::window::screen_width;
 use open;
@@ -40,7 +40,10 @@ pub fn render_state(state: &mut State) {
                     let _ = state.add_task_without_duplicate(build_import_media_task_folders());
                 }
                 if ui.button(format!("Process {} from input", state.new_files.to_string())).clicked() {
-                    let _ = state.add_task_without_duplicate(build_process_new_files_task());
+                    let _ = state.add_task(build_process_new_files_task());
+                }
+                if ui.button(format!("Sort {} processed files", state.unsorted_files.to_string())).clicked() {
+                    let _ = state.add_task(build_process_unsorted_files_task());
                 }
                 });
 

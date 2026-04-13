@@ -1,12 +1,15 @@
+
+use std::path::PathBuf;
+
 use anyhow;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, PartialOrd)]
 pub enum DeviceId {
     ClientId(u16),
     CameraId(String),
 }
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, PartialOrd)]
 pub struct DeviceTime {
     pub internal_clock: u64,
     pub device_id: DeviceId,
@@ -34,12 +37,15 @@ pub enum DataValue {
     SceneName(String),
 
     EnableTakeNumber(bool),
-    TakeNumber(bool),
+    TakeNumber(u32),
     // the above values are recorded in a csv format and can be read form either a qr code or a text file
 
     /// the below value if read from a image of a barcode.
     /// the device time in this enum should be the one that is gotten from the device that captured it.
-    ClockOffset(DeviceTime)
+    ClockOffset(DeviceTime),
+
+
+    MediaCreated(PathBuf),
 }
 
 impl TimelineEntry {
@@ -81,5 +87,15 @@ impl TimelineEntry {
             }
             }
         )
+    }
+}
+
+
+impl ToString for DeviceId {
+    fn to_string(&self) -> String {
+        match self {
+            DeviceId::ClientId(a) => a.to_string(),
+            DeviceId::CameraId(a) => a.to_owned(),
+        }
     }
 }

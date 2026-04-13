@@ -72,6 +72,7 @@ fn process_raw_data(data: &mut [u8], height: u32, width: u32, entries: &mut Vec<
         internal_clock: creation_time + (timestamp * 1000.0).round() as u64,
     };
 
+
     let mut timecode_qr_codes = vec![];
 
     for s in scan_qr(data, width, height) {
@@ -97,15 +98,17 @@ fn process_raw_data(data: &mut [u8], height: u32, width: u32, entries: &mut Vec<
     };
 
 
-
-    let barcode_res = detect_barcodes(data, width, height, &time);
-    if let Ok(mut barcode_data) = barcode_res {
-        entries.append(&mut barcode_data);
-    }
+    // the barcode method is considered deprecated for now, but Thats only because its just not
+    // reliable enough at the moment
+    // let barcode_res = detect_barcodes(data, width, height, &time);
+    // if let Ok(mut barcode_data) = barcode_res {
+    //     entries.append(&mut barcode_data);
+    // }
 
 
 }
 
+/// the main thing that needs to be optimised is re scanning the same qr code over and over.
 fn process_raw_file(path: &PathBuf, ex: &ExifTool, filetype: String ) -> anyhow::Result<Vec<TimelineEntry>> {
     let mut entries = vec![];
     let creation_time = get_creation_time_ms(&path, &ex)?;
@@ -116,8 +119,9 @@ fn process_raw_file(path: &PathBuf, ex: &ExifTool, filetype: String ) -> anyhow:
                 .input(path.to_str().context("path contained non utf8 chars")?)
                 .rawvideo()          // shorthand for: -f rawvideo -pix_fmt rgb24 pipe:1
                 .create_no_window()
+
                 .duration("45")
-                .args(["-vf", "fps=10,scale=1080:-1"])
+                .args(["-vf", "fps=10,scale=1080:-1,mpdecimate -loglevel debug"])
                 .spawn()?
                 .iter()?
                 .for_each(|event| {

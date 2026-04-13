@@ -10,3 +10,4 @@ ScanCodeSync.dmg
 .flatpak-builder
 ScanCodeSyncDesktop/ScanCodeSync.flatpak
 ScanCodeSyncDesktop/__pycache__/build_linux.cpython-314.pyc
+msix_staging

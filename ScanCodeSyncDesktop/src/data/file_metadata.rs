@@ -6,9 +6,11 @@ use egui_macroquad::egui::ahash::RandomState;
 use chrono::{TimeZone, Utc};
 use anyhow::{Context, Result, anyhow};
 use exiftool::ExifTool;
+use filenamify;
 
 use crate::{data::data_entry::DeviceId, util::get_project_dir};
 
+use serde_json;
 
 
 fn exif_datetime_to_ms(datetime_str: &str) -> Result<u64> {
@@ -137,6 +139,8 @@ pub fn get_device_id(path: &PathBuf, ex: &ExifTool) -> Result<DeviceId> {
             if let Some((id, _)) = rest.split_once("TIMESTAMP") {
                 if let Ok(n) = id.trim().parse::<u16>() {
                     return Ok(DeviceId::ClientId(n));
+                }else {
+                    return Ok(DeviceId::CameraId(id.trim().to_string()));
                 }
             }
         }
@@ -161,6 +165,10 @@ pub fn get_device_id(path: &PathBuf, ex: &ExifTool) -> Result<DeviceId> {
     "SonyDeviceID",
     "MachineID",
     ];
+    let normalize_tag_value = |raw: &str| {
+        raw.split_whitespace().collect::<Vec<_>>().join(" ")
+    };
+
     let prefix: Vec<String> = tags
         .iter()
         .filter_map(|&tag| {
@@ -169,11 +177,105 @@ pub fn get_device_id(path: &PathBuf, ex: &ExifTool) -> Result<DeviceId> {
                 .and_then(|a| match a {
                     serde_json::Value::Null => None,
                     serde_json::Value::String(s) if s.is_empty() => None,
-                    serde_json::Value::String(s) => Some(format!("{s}")),
-                    other => Some(format!("{other}")),
+                    serde_json::Value::String(s) => {
+                        let cleaned = normalize_tag_value(&s);
+                        if cleaned.is_empty() { None } else { Some(cleaned) }
+                    }
+                    other => {
+                        let cleaned = normalize_tag_value(&format!("{other}"));
+                        if cleaned.is_empty() { None } else { Some(cleaned) }
+                    }
                 })
         }).collect();
 
 
-    Ok(DeviceId::CameraId(format!("{}", prefix.join("-"))))
+    Ok(DeviceId::CameraId(filenamify::filenamify(format!("{}", prefix.join("-")))))
+}
+
+
+
+
+/// Writes a custom metadata key-value pair to a file using ExifTool.
+/// Values are stored under the XMP-xmp namespace as "XMP-xmp:Description"
+/// or a custom namespace tag like "XMP-custom:MyTag".
+///
+/// Uses the `-overwrite_original` flag to avoid creating backup files.
+pub fn write_custom_metadata(
+    path: &PathBuf,
+    key: &str,
+    value: &str,
+    ex: &ExifTool,
+) -> Result<()> {
+    // Sanitize key: only allow alphanumeric and underscores to prevent injection
+    let key: String = key.chars()
+        .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '_' })
+        .collect();
+
+    let tag = format!("XMP-custom:{key}");
+    ex.write_tag(path, &tag, value, &["-overwrite_original"])
+        .with_context(|| format!("failed to write metadata tag '{tag}' to {}", path.display()))
+}
+
+/// Reads a custom metadata value from a file by key.
+/// Returns `None` if the tag is absent or empty.
+pub fn read_custom_metadata(
+    path: &PathBuf,
+    key: &str,
+    ex: &ExifTool,
+) -> Result<Option<String>> {
+    anyhow::ensure!(
+        key.chars().all(|c| c.is_alphanumeric() || c == '_'),
+        "metadata key must be alphanumeric (got: {key})"
+    );
+
+    let tag = format!("XMP-custom:{key}");
+    match ex.read_tag::<serde_json::Value>(path, &tag, &[]) {
+        Ok(serde_json::Value::String(s)) if !s.trim().is_empty() => Ok(Some(s)),
+        Ok(serde_json::Value::Null) | Err(_) => Ok(None),
+        Ok(other) => {
+            // Coerce non-string values (numbers, bools, etc.) to string
+            Ok(Some(other.to_string()))
+        }
+    }
+}
+
+/// Reads all custom XMP-custom metadata tags from a file as key-value pairs.
+pub fn read_all_custom_metadata(
+    path: &PathBuf,
+    ex: &ExifTool,
+) -> Result<std::collections::HashMap<String, String>> {
+    let raw = ex
+        .read_tag::<serde_json::Value>(path, "XMP-custom:all", &["-j"])
+        .with_context(|| format!("failed to read XMP-custom tags from {}", path.display()))?;
+
+    let mut map = std::collections::HashMap::new();
+
+    if let serde_json::Value::Object(obj) = raw {
+        for (k, v) in obj {
+            let value_str = match v {
+                serde_json::Value::String(s) if !s.trim().is_empty() => s,
+                serde_json::Value::Null => continue,
+                other => other.to_string(),
+            };
+            map.insert(k, value_str);
+        }
+    }
+
+    Ok(map)
+}
+
+/// Deletes a custom metadata key from a file by setting it to an empty value.
+pub fn delete_custom_metadata(
+    path: &PathBuf,
+    key: &str,
+    ex: &ExifTool,
+) -> Result<()> {
+    anyhow::ensure!(
+        key.chars().all(|c| c.is_alphanumeric() || c == '_'),
+        "metadata key must be alphanumeric (got: {key})"
+    );
+
+    let tag = format!("XMP-custom:{key}=");  // empty RHS = delete in ExifTool
+    ex.write_tag(path, &tag, "", &["-overwrite_original"])
+        .with_context(|| format!("failed to delete metadata tag '{key}' from {}", path.display()))
 }

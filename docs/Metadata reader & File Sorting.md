@@ -7,3 +7,15 @@ The video and audio files will be grouped based on the device name in the metada
 
 
 This is implemented in [Rust Desktop Implementation](Rust%20Desktop%20Implementation.md)
+
+
+
+
+given a bunch of observations of the separate clocks
+```
+a----1-----|----------2-----------|--7-
+b----------|---3--|-------6------------
+c---------5-------|-------4-------|----
+```
+
+we can split each clock timeline into a bunch time jumps. the start and end of each cunk is defined by a measurement against another clock. we can then add a multiplacation factor to each chunk. there is then some value that allows all of the simoultanous events to line up. we can solve this with linear algebra.
