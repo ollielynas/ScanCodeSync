@@ -1,3 +1,5 @@
+/// this file should be better named to reflect how it works
+
 use anyhow::Context;
 use atomic_progress::Progress;
 use petgraph::graph::UnGraph;

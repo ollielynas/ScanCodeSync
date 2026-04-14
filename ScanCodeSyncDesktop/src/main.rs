@@ -1,11 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::{panic, time::{Duration, Instant}};
+use ffmpeg_sidecar::{command::ffmpeg_is_installed, download::{download_ffmpeg_package_with_progress, ffmpeg_download_url, unpack_ffmpeg}};
 use macroquad::{prelude::*, ui::widgets::Window, window};
 use egui_macroquad::egui;
 use rfd::MessageDialogResult;
 
-use crate::{ main_ui::render_state, state::State, tasks::task_builders::{build_init_task, build_install_exiftools_task, build_install_magick_task, build_update_input_files_list_task}, util::{get_project_dir, is_magick_installed}};
+use crate::{ main_ui::render_state, state::State, tasks::task_builders::{build_init_task, build_install_exiftools_task, build_install_ffmpeg_task, build_install_magick_task, build_update_input_files_list_task}, util::{get_project_dir, is_magick_installed}};
 use crate::util::window_conf;
 
 pub mod val_hold;
@@ -36,20 +37,12 @@ async fn main() {
         .set_description(format!("Warning, you are on version \n{}\nThis version is not feature complete.", version))
         .show();
     }
-
-
     let mut state = State::default();
-    // let a = ffmpeg_sidecar::download::download_ffmpeg_package("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", get_project_dir().unwrap().cache_dir());
 
-    match ffmpeg_sidecar::download::auto_download() {
-        Ok(_) => {},
-        Err(a) => {
-            println!("{:?}", a);
-            rfd::MessageDialog::new().set_title("FFMPEG failed to download").
-                set_description("please consider downloading ffmpeg yourself:\nhttps://www.google.com/search?q=how+to+install+ffmped+and+add+to+path")
-                .show();
-        },
-    };
+    if !ffmpeg_is_installed() {
+         state.add_task(build_install_ffmpeg_task());
+    }
+
     match exiftool::ExifTool::new() {
         Ok(_) => {println!("exiftool is installed")},
         Err(e) => {
@@ -57,6 +50,7 @@ async fn main() {
             state.add_task(build_install_exiftools_task());
         },
     }
+
     if !is_magick_installed() {
         state.add_task(build_install_magick_task());
     }

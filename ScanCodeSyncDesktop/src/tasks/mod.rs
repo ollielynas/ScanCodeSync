@@ -9,4 +9,6 @@ pub mod update_unsorted_file_list;
 pub mod install_exiftools;
 pub mod restart;
 pub mod install_magick;
+pub mod install_ffmpeg;
 pub mod process_unsorted_files;
+pub mod reset_data_task;
