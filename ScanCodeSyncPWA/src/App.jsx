@@ -6,12 +6,14 @@ import { getOrCreateDeviceId } from "./device_id";
 import { fskTransmit } from "./play_audio";
 import InstallPWA from "./Pwa";
 import QrMetadataDisplay from "./QRCode";
+import SaveWithRollbackModal from "./SaveWithRollbackModal";
 import TakePhotoScan from "./Scan";
 import TimeQrDisplay from "./TimeQrDisplay";
 const DEVICE_ID = getOrCreateDeviceId();
 
 function App() {
   const [mobilePanel, setMobilePanel] = useState("controls");
+  const [showRollbackPopup, setShowRollbackPopup] = useState(false);
 
   const cookieKeys = [
     // this key is deprecated
@@ -29,6 +31,8 @@ function App() {
     // above is the values that will later become a part of the database
     "pendingChanges",
     "changeLog",
+    "renameDevice",
+    "saveRollbackSeconds",
   ];
 
   const [cookies, setCookie] = useCookies(cookieKeys);
@@ -42,11 +46,31 @@ function App() {
     setCookie(key, value, cookieOptions);
   };
 
-  const handleSave = () => {
+  const setLocal = (key, value) => {
+    setCookie(key, value, cookieOptions);
+  };
+
+  const dismissKeyboard = () => {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) {
+      active.blur();
+    }
+    if (navigator.virtualKeyboard?.hide) {
+      navigator.virtualKeyboard.hide();
+    }
+  };
+
+  const savePendingChanges = (rollbackSecondsInput = 0) => {
     const pending = cookies.pendingChanges ?? {};
     if (Object.keys(pending).length === 0) return;
 
-    const timestamp = String(BigInt(Date.now()));
+    const rollbackSecondsRaw = Number(rollbackSecondsInput);
+    const rollbackSeconds = Number.isFinite(rollbackSecondsRaw)
+      ? Math.max(0, rollbackSecondsRaw)
+      : 0;
+    const rollbackMs = Math.trunc(rollbackSeconds * 1000);
+    const effectiveNowMs = Math.max(0, Date.now() - rollbackMs);
+    const timestamp = String(BigInt(effectiveNowMs));
     const newRows = Object.entries(pending)
       .map(([key, value]) => `${DEVICE_ID},${timestamp},${key},${value}`)
       .join("\n");
@@ -55,6 +79,32 @@ function App() {
     const updated = existing ? `${existing}\n${newRows}` : newRows;
     setCookie("changeLog", updated, cookieOptions);
     setCookie("pendingChanges", {}, cookieOptions);
+  };
+
+  const handleSave = () => {
+    dismissKeyboard();
+    savePendingChanges(0);
+  };
+
+  const handleSaveWithRollback = () => {
+    dismissKeyboard();
+    const rollbackSecondsRaw = Number(cookies.saveRollbackSeconds ?? 0);
+    const rollbackSeconds = Number.isFinite(rollbackSecondsRaw)
+      ? Math.max(0, rollbackSecondsRaw)
+      : 0;
+    setLocal("saveRollbackSeconds", String(rollbackSeconds));
+    savePendingChanges(rollbackSeconds);
+    setShowRollbackPopup(false);
+  };
+
+  const openRollbackPopup = () => {
+    dismissKeyboard();
+    setShowRollbackPopup(true);
+  };
+
+  const closeRollbackPopup = () => {
+    dismissKeyboard();
+    setShowRollbackPopup(false);
   };
 
   const handleDownloadCSV = () => {
@@ -78,9 +128,11 @@ function App() {
   const enableSceneName = getBool("enableSceneName");
   const enableTakeNumber = getBool("enableTakeNumber");
   const productionName = cookies.productionName ?? "Production Name";
-  const operatorName = cookies.operatorName ?? "Operator Name";
   const sceneName = cookies.sceneName ?? "Scene Name";
   const takeNumber = cookies.takeNumber ?? 1;
+
+  const renameDevice = cookies.renameDevice ?? "";
+  const saveRollbackSeconds = cookies.saveRollbackSeconds ?? "30";
 
   const hasPending = Object.keys(cookies.pendingChanges ?? {}).length > 0;
   const hasLog = !!(cookies.changeLog ?? "");
@@ -124,7 +176,7 @@ function App() {
         </div>
 
         <article
-          className={`scs-card min-h-0 space-y-3 overflow-auto p-3 md:block md:space-y-4 md:p-6 ${
+          className={`scs-card scs-controls-panel min-h-0 space-y-3 overflow-auto p-3 md:block md:space-y-4 md:p-6 ${
             mobilePanel === "controls" ? "block" : "hidden"
           }`}
         >
@@ -258,6 +310,12 @@ function App() {
 
           {isOperator && (
             <label className="block rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-medium text-slate-700">
+              <p>
+                make sure that if you are renaming a camera using this field,
+                that the same camera is used to scan the qr codes at the end,
+                and that the sync codes for this device are also scanned
+              </p>
+              <br></br>
               <span className="mb-2 flex items-center gap-2">
                 <input
                   id="is_operator_checkbox"
@@ -266,21 +324,25 @@ function App() {
                   checked={enableOperatorName}
                   onChange={(e) => set("enableOperatorName", e.target.checked)}
                 />
-                Enable Operator Name
+                Rename Camera
               </span>
               <input
                 type="text"
                 id="operator_name_input"
                 className="scs-input mt-0"
                 disabled={!enableOperatorName}
-                value={operatorName}
-                onChange={(e) => set("operatorName", e.target.value)}
+                value={renameDevice}
+                onChange={(e) => set("renameDevice", e.target.value)}
               />
             </label>
           )}
 
           <div className="border-t border-slate-200 pt-3">
-            <div className="flex flex-wrap items-center gap-2">
+            <div
+              className={`scs-save-bar flex flex-wrap items-center gap-2 ${
+                showRollbackPopup ? "scs-save-bar-hidden" : ""
+              }`}
+            >
               <button
                 id="save_changes_button"
                 className="scs-button"
@@ -289,12 +351,20 @@ function App() {
               >
                 Save Changes
               </button>
+              <button
+                id="save_with_rollback_button"
+                className="scs-button-secondary"
+                onClick={openRollbackPopup}
+                disabled={!hasPending}
+              >
+                Save with Rollback
+              </button>
               {hasPending ? (
                 <p
                   id="unsaved_changes_warning"
                   className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-red-500 animate-bounce"
                 >
-                  Unsaved changes, you changes do not have an effect until you
+                  Unsaved changes, your changes do not have an effect until you
                   save them.
                 </p>
               ) : (
@@ -303,6 +373,16 @@ function App() {
                 </p>
               )}
             </div>
+
+            <SaveWithRollbackModal
+              isOpen={showRollbackPopup}
+              rollbackSeconds={saveRollbackSeconds}
+              onClose={closeRollbackPopup}
+              onConfirm={handleSaveWithRollback}
+              onRollbackChange={(value) =>
+                setLocal("saveRollbackSeconds", value)
+              }
+            />
           </div>
         </article>
 
@@ -347,17 +427,17 @@ function App() {
 
           <div className="grid gap-2 sm:grid-cols-2">
             <p>
-              Take a photo or video of these qr codes on each camera before you
-              start.
+              Take a photo or video of these qr codes on each camera at the
+              start of each day.
             </p>
+
             <TimeQrDisplay />
 
-            <p>
-              Take a photo or video of these qr codes after each day of
-              recording
-            </p>
-            <QrMetadataDisplay />
             {/* <BarcodeDisplay />*/}
+            <p>
+              Take a recording of the sound generated by this button on all of
+              your audio recording devices at the start of each day.
+            </p>
             <button
               className="scs-button-secondary w-full"
               onClick={async () => {
@@ -374,10 +454,11 @@ function App() {
               Play Audio Signature
             </button>
             <p>
-              if you are using more than one device you should scan the time qr
-              codes on the other devices. You can also scan all of the devices
-              with your production camera to sync them
+              Take a photo or video of these qr codes after each day of
+              recording
             </p>
+            <QrMetadataDisplay />
+
             <TakePhotoScan />
             <InstallPWA />
           </div>

@@ -147,7 +147,7 @@ const TimeQrDisplay = () => {
         className="scs-button-secondary w-full"
         onClick={() => setVisible(true)}
       >
-        Fullscreen Time QR
+        Sync Code
       </button>
     </>
   );

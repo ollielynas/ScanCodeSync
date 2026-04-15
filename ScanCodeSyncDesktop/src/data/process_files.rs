@@ -1,12 +1,12 @@
-use std::{fs, path::PathBuf, process::{Command, Stdio}, time::Duration};
-use anyhow::{anyhow, Context};
+use std::{fs, path::PathBuf, process::{Command, Stdio}};
+use anyhow::Context;
 use atomic_progress::Progress;
 use exiftool::ExifTool;
 use ffmpeg_sidecar::{self, command::FfmpegCommand, event::FfmpegEvent};
-use image::{GrayImage, ImageBuffer};
+use image::GrayImage;
 use rqrr::PreparedImage;
 
-use crate::{data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, file_metadata::{self, get_creation_time_ms, get_device_id}, get_barcode::detect_barcodes}, util::{FFMPEG_FRMATS}};
+use crate::{data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, file_metadata::{get_creation_time_ms, get_device_id}}, util::{FFMPEG_FRMATS}};
 
 
 fn process_csv_text(text: String) -> Vec<TimelineEntry> {

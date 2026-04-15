@@ -1,10 +1,10 @@
-use std::{path::{PathBuf, Prefix}, thread};
+use std::thread;
 
-use anyhow::{Context, bail};
+use anyhow::bail;
 use atomic_progress::Progress;
 use rfd::MessageDialogResult;
 
-use crate::{ task::Task, tasks::task_builders::{build_restart_task, build_update_input_files_list_task}, util::recurse_files};
+use crate::{ task::Task, tasks::task_builders::{build_restart_task}};
 
 
 
@@ -35,7 +35,7 @@ impl Task for InstallExifToolsTask {
         }
     }
 
-    fn attempt_run(&mut self, state: &mut crate::state::State) -> anyhow::Result<()> {
+    fn attempt_run(&mut self, _state: &mut crate::state::State) -> anyhow::Result<()> {
         self.progress = Progress::new_spinner("Installing ExifTools");
         let progress = self.progress.clone();
         self.finished = false;
@@ -73,12 +73,12 @@ impl Task for InstallExifToolsTask {
     }
 
     /// I think this is unfinished so like; todo: finish
-    fn cancel_task(&mut self, state: &mut crate::state::State) {
+    fn cancel_task(&mut self, _state: &mut crate::state::State) {
         self.handle = None;
         self.finished = true;
     }
 
-    fn attempt_collect(&mut self, state: &mut crate::state::State) -> anyhow::Result<()> {
+    fn attempt_collect(&mut self, _state: &mut crate::state::State) -> anyhow::Result<()> {
 
         match &mut self.handle {
             Some(h) if h.is_finished() => {
@@ -90,7 +90,7 @@ impl Task for InstallExifToolsTask {
 
         let resault = handle.join();
         match resault {
-            Ok(Ok(a)) => {
+            Ok(Ok(_a)) => {
                 return Ok(());
             }
             Ok(Err(e)) => {bail!("{}", e)}

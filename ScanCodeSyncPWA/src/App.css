@@ -1,0 +1,26 @@
+.scs-save-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(4px);
+  padding: 0.5rem;
+}
+
+@media (max-width: 767px) {
+  .scs-controls-panel {
+    padding-bottom: 1.25rem;
+  }
+
+  .scs-save-bar {
+    bottom: calc(0.35rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .scs-save-bar-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+}

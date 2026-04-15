@@ -3,7 +3,7 @@ use std::{path::PathBuf, thread};
 use anyhow::bail;
 use atomic_progress::Progress;
 
-use crate::{populate_field, task::Task, tasks::task_builders::build_update_input_files_list_task, util::recurse_files};
+use crate::{populate_field, task::Task};
 
 
 
@@ -35,11 +35,11 @@ impl Task for ChangeOutputFolderTask {
     }
 
     fn attempt_run(&mut self, state: &mut crate::state::State) -> anyhow::Result<()> {
-        let mut path: PathBuf;
+        let mut path: PathBuf = Default::default();
         if [
                 state.output_folder.available(),
                 ].iter().all(|x| *x) {
-                    path =  state.output_folder.depopulate(self.id)?.to_path_buf();
+                    let _ =  state.output_folder.depopulate(self.id)?.to_path_buf();
             }else {
                 anyhow::bail!("not all of the values are available");
             }
@@ -75,7 +75,7 @@ impl Task for ChangeOutputFolderTask {
     }
 
     /// I think this is unfinished so like; todo: finish
-    fn cancel_task(&mut self, state: &mut crate::state::State) {
+    fn cancel_task(&mut self, _state: &mut crate::state::State) {
         self.handle = None;
         self.finished = true;
     }

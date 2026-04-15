@@ -1,26 +1,24 @@
-use crate::data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, get_barcode, image_processing_algorithm::selective_blur};
+use crate::data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, image_processing_algorithm::selective_blur};
 
-use image::{DynamicImage, ImageBuffer, RgbImage};
-use palette::{Lab, Srgb, color_difference::DeltaE, IntoColor};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 
-const COLORS: &[(&str, (u8, u8, u8))] = &[
-    ("red",     (255, 0,   0)),
-    ("green",   (0,   255, 0)),
-    ("blue",    (0,   0,   255)),
-    ("yellow",  (255, 255, 0)),
-    ("orange",  (255, 165, 0)),
-    ("purple",  (128, 0,   128)),
-    // ("pink",    (255, 192, 203)),
-    ("white",   (255, 255, 255)),
-    ("black",   (0,   0,   0)),
-    // ("gray",    (128, 128, 128)),
-];
+// const COLORS: &[(&str, (u8, u8, u8))] = &[
+//     ("red",     (255, 0,   0)),
+//     ("green",   (0,   255, 0)),
+//     ("blue",    (0,   0,   255)),
+//     ("yellow",  (255, 255, 0)),
+//     ("orange",  (255, 165, 0)),
+//     ("purple",  (128, 0,   128)),
+//     // ("pink",    (255, 192, 203)),
+//     ("white",   (255, 255, 255)),
+//     ("black",   (0,   0,   0)),
+//     // ("gray",    (128, 128, 128)),
+// ];
 
 
 fn pre_process(data: &mut [u8], height: u32, width: u32) {
 
-    let id = format!("debug_data/{}{}{}.png", data[0],data[1],data[2]);
+    // let id = format!("debug_data/{}{}{}.png", data[0],data[1],data[2]);
 
     selective_blur(data, width as usize, height as usize);
     selective_blur(data, width as usize, height as usize);
@@ -54,10 +52,9 @@ fn pre_process(data: &mut [u8], height: u32, width: u32) {
 
     #[cfg(debug_assertions)]
         {
-            use image::{ImageBuffer, RgbImage};
 
-            let img: RgbImage = ImageBuffer::from_raw(width, height, data.to_vec())
-                .expect("Failed to create image from buffer");
+            // let img: RgbImage = ImageBuffer::from_raw(width, height, data.to_vec())
+            //     .expect("Failed to create image from buffer");
 
             // img.save(&id).expect("Failed to save debug image");
             // open::that(&id).expect("Failed to open image");
@@ -71,17 +68,17 @@ fn closest_color(r: u8, g: u8, b: u8) -> &'static str {
     if (r,g,b) == (0,255,0) {return "green"}
     return "white";
 
-    let target: Lab = Srgb::new(r as f32 / 255., g as f32 / 255., b as f32 / 255.)
-        .into_color();
+    // let target: Lab = Srgb::new(r as f32 / 255., g as f32 / 255., b as f32 / 255.)
+    //     .into_color();
 
-    COLORS.iter()
-        .min_by_key(|(_, (cr, cg, cb))| {
-            let c: Lab = Srgb::new(*cr as f32 / 255., *cg as f32 / 255., *cb as f32 / 255.)
-                .into_color();
-            (target.delta_e(c) * 1000.) as u32
-        })
-        .map(|(name, _)| *name)
-        .unwrap()
+    // COLORS.iter()
+    //     .min_by_key(|(_, (cr, cg, cb))| {
+    //         let c: Lab = Srgb::new(*cr as f32 / 255., *cg as f32 / 255., *cb as f32 / 255.)
+    //             .into_color();
+    //         (target.delta_e(c) * 1000.) as u32
+    //     })
+    //     .map(|(name, _)| *name)
+    //     .unwrap()
 
 
 }
@@ -116,7 +113,7 @@ pub fn detect_barcode_1d(lst: &[(u8,u8,u8)]) -> Option<(u64, u16)> {
                 }
             }
             &"black" | &"white" => {}
-            c => {
+            _ => {
                 if last == "green" {
                     if green > 0
                         && red > 0

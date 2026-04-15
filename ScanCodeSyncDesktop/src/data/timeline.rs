@@ -2,10 +2,10 @@
 
 use anyhow::Context;
 use atomic_progress::Progress;
-use petgraph::graph::UnGraph;
-use petgraph::stable_graph::StableGraph;
+// use petgraph::graph::UnGraph;
+// use petgraph::stable_graph::StableGraph;
 
-use std::{collections::BTreeSet, fs::{self, DirEntry}, path::PathBuf};
+use std::{collections::BTreeSet, path::PathBuf};
 
 use egui_macroquad::egui::ahash::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
@@ -96,7 +96,7 @@ impl Timeline {
                 DataValue::SceneName(n) => {current_scene = n},
                 DataValue::EnableTakeNumber(n) => {take_enabled = n},
                 DataValue::TakeNumber(n) => {current_take = n},
-                DataValue::ClockOffset(device_time) => {
+                DataValue::ClockOffset(_device_time) => {
                     println!("this should not be reached but I ant about be panicking about it")
                 },
                 DataValue::MediaCreated(input_path) => {
@@ -122,7 +122,7 @@ impl Timeline {
 
                     println!("output path: {:?},", output_path);
 
-                    fs::create_dir_all(&output_path).context("failed to create folder")?;
+                    std::fs::create_dir_all(&output_path).context("failed to create folder")?;
 
                     let mut filename = input_path.file_name().unwrap_or_default().to_string_lossy().to_string();
                         if let Some((_, n)) = filename.split_once("TIMESTAMP") {
@@ -133,9 +133,12 @@ impl Timeline {
 
                     output_path.push(filename);
 
-                    match fs::copy(&input_path, &output_path) {
+                    match std::fs::copy(&input_path, &output_path) {
                         Ok(_) => {
-                            fs::remove_file(input_path);
+                            match std::fs::remove_file(input_path) {
+                                Ok(_) => {},
+                                Err(a) => println!("failed to delete file {:?}", a),
+                            }
                         },
                         Err(_) => {},
                     };

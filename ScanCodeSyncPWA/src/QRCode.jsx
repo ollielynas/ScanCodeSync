@@ -148,7 +148,7 @@ const QrMetadataDisplay = () => {
         className="scs-button-secondary w-full"
         onClick={() => setVisible(true)}
       >
-        Metadata QR Code
+        Metadata Code
       </button>
     </>
   );

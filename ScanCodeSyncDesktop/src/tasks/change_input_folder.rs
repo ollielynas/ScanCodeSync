@@ -3,7 +3,7 @@ use std::{path::PathBuf, thread};
 use anyhow::bail;
 use atomic_progress::Progress;
 
-use crate::{populate_field, task::Task, tasks::task_builders::build_update_input_files_list_task, util::recurse_files};
+use crate::{populate_field, task::Task, tasks::task_builders::build_update_input_files_list_task};
 
 
 
@@ -77,7 +77,7 @@ impl Task for ChangeInputFolderTask {
     }
 
     /// I think this is unfinished so like; todo: finish
-    fn cancel_task(&mut self, state: &mut crate::state::State) {
+    fn cancel_task(&mut self, _state: &mut crate::state::State) {
         self.handle = None;
         self.finished = true;
     }

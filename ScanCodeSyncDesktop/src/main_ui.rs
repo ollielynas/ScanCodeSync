@@ -1,13 +1,12 @@
-use crate::{state::State, task::Task, tasks::task_builders::{build_import_media_task_folders, build_process_new_files_task, build_process_unsorted_files_task, user_accessible_tasks}, util::truncate_front};
+use crate::{state::State, tasks::task_builders::{build_import_media_task_folders, build_process_new_files_task, build_process_unsorted_files_task, user_accessible_tasks}, util::truncate_front};
 use egui_macroquad::egui;
-use macroquad::window::screen_width;
 use open;
 
 
 
 pub fn render_state(state: &mut State) {
 
-    let mut kill_tasks: Vec<u64> = vec![];
+    let kill_tasks: Vec<u64> = vec![];
 
     egui_macroquad::ui(|egui_ctx| {
         egui_ctx.set_pixels_per_point(1.3);

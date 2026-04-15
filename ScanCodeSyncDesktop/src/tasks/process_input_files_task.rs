@@ -4,7 +4,7 @@ use anyhow::bail;
 use atomic_progress::{Progress, ProgressBuilder};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{data::{data_entry::{DataValue, DeviceTime, TimelineEntry}, file_metadata::{get_creation_time_ms, get_device_id}, process_files::{self, attempt_process_file}, timeline::{self, Timeline}}, populate_field, task::Task, tasks::task_builders::{build_update_input_files_list_task, build_update_unsorted_files_list_task}, util::recurse_files};
+use crate::{data::{data_entry::{DataValue, DeviceTime, TimelineEntry}, file_metadata::{get_creation_time_ms, get_device_id}, process_files::attempt_process_file, timeline::{self, Timeline}}, populate_field, task::Task, tasks::task_builders::{build_update_input_files_list_task, build_update_unsorted_files_list_task}, util::recurse_files};
 
 // thread_local! {
 //     static EXIFTOOL: RefCell<Option<exiftool::ExifTool>> = RefCell::new(None);

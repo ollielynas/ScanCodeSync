@@ -1,4 +1,4 @@
-use std::{ffi::OsStr, fs, hash::{DefaultHasher, Hash, Hasher}, path::{Path, PathBuf}, thread};
+use std::{ffi::OsStr, fs, path::{Path, PathBuf}, thread};
 
 use anyhow::bail;
 use atomic_progress::Progress;
@@ -158,6 +158,7 @@ impl Task for ImportMediaTask {
 
     /// I think this is unfinished so like; todo: finish
     fn cancel_task(&mut self, state: &mut crate::state::State) {
+        let _ = state;
         self.handle = None;
         self.finished = true;
     }

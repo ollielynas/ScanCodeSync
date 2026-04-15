@@ -1,8 +1,7 @@
-use std::{fs, path::{Path, PathBuf}, str::FromStr, thread};
-use anyhow::{anyhow, bail};
+use std::{fs, path::PathBuf,thread};
+use anyhow::bail;
 use atomic_progress::{Progress, ProgressType};
-use crate::{depopulate_all_into_state_init_values, load_field, populate_field, task::Task, tasks::task_builders::build_update_input_files_list_task, util::{get_config, get_project_dir, set_config}, val_hold::ValueHolder};
-use directories::ProjectDirs;
+use crate::{depopulate_all_into_state_init_values, populate_field, task::Task, tasks::task_builders::build_update_input_files_list_task, util::get_project_dir};
 pub struct StateInitValues {
     pub input_folder: Box<PathBuf>,
     pub output_folder: Box<PathBuf>,
@@ -48,11 +47,8 @@ impl Task for InitTask {
     }
 
     /// I think this is unfinished so like; todo: finish
-    fn cancel_task(&mut self, state: &mut crate::state::State) {
-
-        if let Some(handle) = self.handle.take() {
-
-        }
+    fn cancel_task(&mut self, _state: &mut crate::state::State) {
+        if let Some(_handle) = self.handle.take() {}
         self.finished = true;
     }
 

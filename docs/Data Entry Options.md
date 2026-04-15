@@ -20,6 +20,9 @@ below is a list of database entries that can be created by a client and should b
   
   enableTakeNumber: bool
   takeNumber: int
+  
+  <!--this entry should be entered when the device is showen a qr code. any device showen the qr code will know that it should be renamed.-->
+  renameDevice: String
 }
 ```
 

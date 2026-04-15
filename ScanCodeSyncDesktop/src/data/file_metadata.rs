@@ -1,14 +1,13 @@
-use std::{hash::{BuildHasher, Hash, Hasher}, path::PathBuf};
+use std::path::PathBuf;
 
 #[cfg(target_os = "windows")]
-use atomic_progress::Progress;
-use egui_macroquad::egui::ahash::RandomState;
+
 use chrono::{TimeZone, Utc};
 use anyhow::{Context, Result, anyhow};
 use exiftool::ExifTool;
 use filenamify;
 
-use crate::{data::data_entry::DeviceId, util::get_project_dir};
+use crate::{data::data_entry::DeviceId};
 
 use serde_json;
 

@@ -46,6 +46,7 @@ pub enum DataValue {
 
 
     MediaCreated(PathBuf),
+    RenameDevice(String),
 }
 
 impl TimelineEntry {
@@ -81,6 +82,7 @@ impl TimelineEntry {
                 ("enableTakeNumber", "true"|"True") => DataValue::EnableTakeNumber(true),
                 ("enableTakeNumber", "false"|"False") => DataValue::EnableTakeNumber(false),
                 ("takeNumber", s) => DataValue::TakeNumber(s.parse()?),
+                ("renameDevice", s) => DataValue::RenameDevice(s.to_string()),
 
 
                 (k,v) => {anyhow::bail!("failed to parse key value pair; {k}:{v}")}

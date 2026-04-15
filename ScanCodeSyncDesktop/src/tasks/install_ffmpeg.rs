@@ -3,7 +3,7 @@ use anyhow::{Context, bail};
 use atomic_progress::Progress;
 use rfd::MessageDialogResult;
 // Import the manual download tools from ffmpeg-sidecar
-use ffmpeg_sidecar::download::{download_ffmpeg_package, download_ffmpeg_package_with_progress, ffmpeg_download_url, unpack_ffmpeg};
+use ffmpeg_sidecar::download::{download_ffmpeg_package, ffmpeg_download_url, unpack_ffmpeg};
 
 use crate::{task::Task, tasks::task_builders::build_restart_task, util::get_project_dir};
 

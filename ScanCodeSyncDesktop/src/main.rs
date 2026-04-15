@@ -1,10 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::{panic, time::{Duration, Instant}};
-use ffmpeg_sidecar::{command::ffmpeg_is_installed, download::{download_ffmpeg_package_with_progress, ffmpeg_download_url, unpack_ffmpeg}};
-use macroquad::{prelude::*, ui::widgets::Window, window};
-use egui_macroquad::egui;
-use rfd::MessageDialogResult;
+use ffmpeg_sidecar::{command::ffmpeg_is_installed};
+use macroquad::prelude::*;
 
 use crate::{ main_ui::render_state, state::State, tasks::task_builders::{build_init_task, build_install_exiftools_task, build_install_ffmpeg_task, build_install_magick_task, build_update_input_files_list_task}, util::{get_project_dir, is_magick_installed}};
 use crate::util::window_conf;
