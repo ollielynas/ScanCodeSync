@@ -157,6 +157,7 @@ def update_releases_html(website_dir: str):
         <h1>ScanCodeSync Releases</h1>
         <p>Latest version: {latest_version} - page updated {date_str}</p>
         {cards_html}
+        <a href="https://github.com/ollielynas/ScanCodeSync">source code</a>
     </div>
 </body>
 </html>

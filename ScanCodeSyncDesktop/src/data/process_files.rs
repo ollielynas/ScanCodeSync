@@ -6,11 +6,11 @@ use ffmpeg_sidecar::{self, command::FfmpegCommand, event::FfmpegEvent};
 use image::GrayImage;
 use rqrr::PreparedImage;
 
-use crate::{data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, file_metadata::{get_creation_time_ms, get_device_id}}, util::{FFMPEG_FRMATS}};
+use crate::{command_pool::SharedCommandPool, data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, file_metadata::{get_creation_time_ms, get_device_id}}, util::FFMPEG_FRMATS};
 
 
-fn process_csv_text(text: String) -> Vec<TimelineEntry> {
-    return text.lines().map(|x| TimelineEntry::from_csv_row(x)).filter(|x| x.is_ok()).map(|x| x.unwrap()).collect();
+fn process_csv_text(text: String, recording_device_id: Option<&DeviceId>) -> Vec<TimelineEntry> {
+    return text.lines().map(|x| TimelineEntry::from_csv_row(x, recording_device_id)).filter(|x| x.is_ok()).map(|x| x.unwrap()).collect();
 }
 
 
@@ -39,7 +39,7 @@ fn scan_qr(data: &[u8], width: u32, height: u32) -> Vec<String> {
         .detect_grids()
         .iter()
         .filter_map(|g| {
-            println!("found grid {:?}", g.decode());
+            crate::dbp!("found grid {:?}", g.decode());
             g.decode().ok()
         })
         .map(|(_, content)| content)
@@ -78,7 +78,7 @@ fn process_raw_data(data: &mut [u8], height: u32, width: u32, entries: &mut Vec<
     for s in scan_qr(data, width, height) {
         if s.contains(",") {
             // assume csv data
-            entries.append(&mut process_csv_text(s));
+            entries.append(&mut process_csv_text(s, Some(camera_id)));
             return;
         } else {
             // otherwise assume timecode data
@@ -109,13 +109,15 @@ fn process_raw_data(data: &mut [u8], height: u32, width: u32, entries: &mut Vec<
 }
 
 /// the main thing that needs to be optimised is re scanning the same qr code over and over.
-fn process_raw_file(path: &PathBuf, ex: &ExifTool, filetype: String ) -> anyhow::Result<Vec<TimelineEntry>> {
+fn process_raw_file(path: &PathBuf, command_pool: SharedCommandPool, filetype: String ) -> anyhow::Result<Vec<TimelineEntry>> {
     let mut entries = vec![];
+    let ex = command_pool.get_exif_command()?;
     let creation_time = get_creation_time_ms(&path, &ex)?;
     let camera_id = get_device_id(&path, &ex)?;
-
+    command_pool.return_exif_command(ex);
     if FFMPEG_FRMATS.contains(&filetype) {
         FfmpegCommand::new()
+
                 .input(path.to_str().context("path contained non utf8 chars")?)
                 .rawvideo()          // shorthand for: -f rawvideo -pix_fmt rgb24 pipe:1
                 .create_no_window()
@@ -130,7 +132,13 @@ fn process_raw_file(path: &PathBuf, ex: &ExifTool, filetype: String ) -> anyhow:
                     }
                 });
     }else {
-        let output = Command::new("magick")
+        let mut cmd = Command::new("magick");
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000);
+        }
+        let output = cmd
             .args(["identify", "-format", "%w %h"])
             .arg(path)
             .output()
@@ -147,7 +155,15 @@ fn process_raw_file(path: &PathBuf, ex: &ExifTool, filetype: String ) -> anyhow:
         }
 
         if width > 0 && height > 0 {
-            let child = Command::new("magick")
+
+            let mut cmd = Command::new("magick");
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000);
+            }
+
+            let child = cmd
                 .arg(&path)
                 .args(["-depth", "8", "rgb:-"])
                 .stdout(Stdio::piped())
@@ -166,7 +182,7 @@ fn process_raw_file(path: &PathBuf, ex: &ExifTool, filetype: String ) -> anyhow:
 }
 
 /// generates timeline data entries from file and them moves it into the "processed but unsorted" folder
-pub fn attempt_process_file(path: &PathBuf, progress: Progress, ex: &ExifTool) -> anyhow::Result<Vec<TimelineEntry>> {
+pub fn attempt_process_file(path: &PathBuf, progress: Progress, command_pool: SharedCommandPool) -> anyhow::Result<Vec<TimelineEntry>> {
     let filename = path.file_name().ok_or(anyhow::anyhow!("file has no filename"))?;
     let filetype = path.extension().ok_or(anyhow::anyhow!("file has no type"))?;
 
@@ -174,12 +190,11 @@ pub fn attempt_process_file(path: &PathBuf, progress: Progress, ex: &ExifTool) -
     match (filetype.to_str(), filename) {
         (Some(".txt")|Some(".csv"), _) => {
             progress.bump();
-            return anyhow::Ok(process_csv_text(fs::read_to_string(path)?));
+            return anyhow::Ok(process_csv_text(fs::read_to_string(path)?, None));
         }
         (_filetype, _name) => {
-            let new_entries = process_raw_file(path, &ex, filetype.to_string_lossy().to_lowercase());
+            let new_entries = process_raw_file(path, command_pool, filetype.to_string_lossy().to_lowercase());
             progress.bump();
-            // println!("new entries {:?}", new_entries);
             return new_entries;
         }
     }

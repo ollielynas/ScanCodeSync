@@ -10,7 +10,7 @@ use crate::data::data_entry::{DeviceId, DeviceTime};
 pub fn solve_clock_drift_multipliers(
     chains: HashMap<DeviceId, BTreeSet<u64>>,
     connections: HashSet<(DeviceTime, DeviceTime)>,
-) -> HashMap<DeviceId, Vec<(u64, f64)>> {
+) -> (HashMap<DeviceId, Vec<(u64, f64)>>, u64) {
 
     // -------------------------------------------------------------------------
     // Step 1: subtract the earliest timestamp to keep f64 precision high
@@ -218,7 +218,7 @@ pub fn solve_clock_drift_multipliers(
         }
     }
 
-    result
+    (result, base)
 }
 
 /// looks up the global time for a specific device reading.

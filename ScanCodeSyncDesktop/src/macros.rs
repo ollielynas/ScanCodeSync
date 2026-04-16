@@ -25,3 +25,10 @@ macro_rules! depopulate_all_into_state_init_values {
         } // No semicolon here!
     };
 }
+
+#[macro_export]
+macro_rules! dbp {
+    ($($arg:tt)*) => {
+        if cfg!(debug_assertions) { println!($($arg)*) }
+    };
+}

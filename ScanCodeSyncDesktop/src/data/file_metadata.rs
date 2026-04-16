@@ -7,7 +7,7 @@ use anyhow::{Context, Result, anyhow};
 use exiftool::ExifTool;
 use filenamify;
 
-use crate::{data::data_entry::DeviceId};
+use crate::{command_pool::SharedCommandPool, data::data_entry::DeviceId};
 
 use serde_json;
 
@@ -75,7 +75,6 @@ pub fn get_creation_time_ms(path: &PathBuf, ex: &ExifTool) -> Result<u64> {
             }
         }
     }
-
     for tag in ["SubSecDateTimeOriginal", "SubSecCreateDate", "SubSecModifyDate"] {
             if let Ok(val) = ex.read_tag::<serde_json::Value>(path, tag, &[]) {
                 if let Some(s) = val.as_str() {

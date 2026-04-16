@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "ScanCodeSyncDesktop"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "anyhow",
  "atomic-progress",
@@ -21,6 +21,7 @@ dependencies = [
  "nalgebra",
  "open",
  "palette",
+ "parking_lot",
  "petgraph",
  "rayon",
  "rfd",

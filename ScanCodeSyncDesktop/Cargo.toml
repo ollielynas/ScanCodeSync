@@ -1,6 +1,6 @@
 [package]
 name = "ScanCodeSyncDesktop"
-version = "0.0.5"
+version = "0.0.6"
 edition = "2024"
 license = "GPL-3.0"
 authors = [ "Ollie Lynas <sync@ollielynas.com>",]
@@ -26,6 +26,7 @@ rayon = "1.11.0"
 rfd = "0.17.2"
 rqrr = "0.10.1"
 serde_json = "1.0.149"
+parking_lot = "0.12"
 
 [dependencies.catppuccin-egui]
 version = "5.7"

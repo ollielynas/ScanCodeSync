@@ -1,6 +1,6 @@
 use std::thread;
 
-use anyhow::bail;
+use anyhow::{Context, bail};
 use atomic_progress::Progress;
 use rfd::MessageDialogResult;
 

@@ -4,6 +4,8 @@ use macroquad::{miniquad, window::Conf};
 use rayon::prelude::*;
 use std::process::Command;
 use std::collections::BTreeSet;
+use chrono::{DateTime, Utc, Local};
+
 
 use anyhow::{self, Context};
 use atomic_progress::Progress;
@@ -58,7 +60,7 @@ pub fn set_config<T: ToString, S: ToString>(key: T, value: S) -> anyhow::Result<
         }
 
         fs::write(&config, lines.join("\n"))?;
-        println!("wrote to file");
+        crate::dbp!("wrote to file");
 
     return Ok(())
 }
@@ -153,8 +155,15 @@ pub fn window_conf() -> Conf {
 
 
 pub fn is_magick_installed() -> bool {
-    std::process::Command::new("magick")
-        .arg("--version")
+
+    let mut cmd = Command::new("magick");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
+
+    cmd.arg("--version")
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false)
@@ -163,7 +172,7 @@ pub fn is_magick_installed() -> bool {
 
 pub static FFMPEG_FRMATS: LazyLock<BTreeSet<String>> = LazyLock::new(|| {
     let l = get_supported_extensions_set();
-    println!("ffmpeg formats {}", l.len());
+    crate::dbp!("ffmpeg formats {}", l.len());
     return l;
 });
 
@@ -205,7 +214,13 @@ fn get_supported_extensions_set() -> BTreeSet<String> {
 }
 
 pub fn get_base_media_type(path: &PathBuf) -> String {
-    let output = match Command::new("exiftool")
+    let mut cmd = Command::new("magick");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
+    let output = match cmd
         // This regex trims everything after the slash internally
         .args(["-S", "-s3", "-p", "${mimetype;s/\\/.*//}", "-fast"])
         .arg(path)
@@ -219,7 +234,15 @@ pub fn get_base_media_type(path: &PathBuf) -> String {
 
 /// I should switch to the batch implementation for better speed.
 pub fn get_mime_type(path: &PathBuf) -> String {
-    let output = Command::new("exiftool")
+
+    let mut cmd = Command::new("ex");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
+
+    let output = cmd
         .args(["-b", "-mimetype"])
         .arg(path)
         .output()
@@ -230,7 +253,13 @@ pub fn get_mime_type(path: &PathBuf) -> String {
 }
 
 pub fn get_batch_mimetypes(paths: Vec<&PathBuf>) -> anyhow::Result<Vec<(String, String)>> {
-    let output = Command::new("exiftool")
+    let mut cmd = Command::new("magick");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
+    let output = cmd
         .args(["-T", "-S", "-mimetype", "-filename"]) // -T for tab-delimited, -S for short values
         .args(&paths)
         .output()?;
@@ -246,4 +275,16 @@ pub fn get_batch_mimetypes(paths: Vec<&PathBuf>) -> anyhow::Result<Vec<(String, 
             }
         })
         .collect())
+}
+
+
+
+pub fn epoch_ms_to_date(epoch_ms: u128) -> String {
+    let secs = (epoch_ms / 1000) as i128;
+    let nanos = ((epoch_ms % 1000) * 1_000_000) as u32;
+
+    let utc = DateTime::from_timestamp(secs as i64, nanos).expect("Invalid timestamp");
+    let local = utc.with_timezone(&Local);
+
+    local.format("%d-%m-%Y").to_string()
 }

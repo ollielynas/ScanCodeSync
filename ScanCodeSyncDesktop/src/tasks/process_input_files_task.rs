@@ -2,6 +2,7 @@ use std::{collections::HashSet, ffi::OsStr, fs, path::PathBuf, thread};
 
 use anyhow::bail;
 use atomic_progress::{Progress, ProgressBuilder};
+use exiftool::ExifTool;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{data::{data_entry::{DataValue, DeviceTime, TimelineEntry}, file_metadata::{get_creation_time_ms, get_device_id}, process_files::attempt_process_file, timeline::{self, Timeline}}, populate_field, task::Task, tasks::task_builders::{build_update_input_files_list_task, build_update_unsorted_files_list_task}, util::recurse_files};
@@ -63,7 +64,7 @@ impl Task for ProcessInputFilesTask {
         progress.set_item("starting thread");
 
 
-        let ex = match exiftool::ExifTool::new() {
+        let _ex = match exiftool::ExifTool::new() {
             Ok(a) => a,
             Err(_) => {
 
@@ -71,18 +72,18 @@ impl Task for ProcessInputFilesTask {
                     .set_title("ExifTool Is Not Installed")
                     .set_description("This function relies on ExifTool.\nPlease Install it from https://exiftool.org/")
                     .show();
-                println!("showed message, should bail next");
+                crate::dbp!("showed message, should bail next");
                 anyhow::bail!("exif tool is not installed");
             },
         };
+
+        let pool = state.command_pool.with_id(self.id.clone()).clone();
+
         self.handle = Some(thread::spawn(move || {
-
-            let ex = exiftool::ExifTool::new()?;
-
 
             progress.set_total(files.len() as u64 + 1);
             let tl_entries: HashSet<TimelineEntry> = files.par_iter().map(|x| {
-                attempt_process_file(x, progress.clone(), &ex)
+                attempt_process_file(x, progress.clone(), pool.clone())
 
             }).filter(|x| x.is_ok()).flat_map(|x| x.unwrap()).collect();
 
@@ -98,6 +99,8 @@ impl Task for ProcessInputFilesTask {
             progress.set_item("finished processing files");
             progress.set_total(files.len() as u64);
 
+            let ex = pool.get_exif_command()?;
+
             for file in files {
                 let filename = file.file_stem().unwrap_or(OsStr::new("undefined")).to_string_lossy().to_string();
                 let filetype = file.extension().unwrap_or(OsStr::new(".file")).to_string_lossy().to_string();
@@ -105,13 +108,13 @@ impl Task for ProcessInputFilesTask {
                 let creation_time = match get_creation_time_ms(&file, &ex) {
                     Ok(a) => a,
                     Err(a) => {
-                        println!("creation time not found {}",a);
+                        crate::dbp!("creation time not found {}",a);
                         continue;},
                 };
                 let camera_id = match get_device_id(&file, &ex) {
                     Ok(a) =>   a,
                     Err(a) => {
-                        println!("cam id not found {}",a);
+                        crate::dbp!("cam id not found {}",a);
                         continue;},
                 };
 
@@ -133,7 +136,7 @@ impl Task for ProcessInputFilesTask {
                         val: DataValue::MediaCreated(new_path) }
                 );
             }
-
+            pool.return_exif_command(ex);
             return Ok((vec![], timeline, unsorted_folder))
         }));
         return Ok(());

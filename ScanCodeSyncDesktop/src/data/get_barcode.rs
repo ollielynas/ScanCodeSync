@@ -1,4 +1,4 @@
-use crate::data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, image_processing_algorithm::selective_blur};
+use crate::{data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, image_processing_algorithm::selective_blur}, dbp};
 
 use rayon::iter::{ParallelBridge, ParallelIterator};
 
@@ -87,7 +87,6 @@ pub fn detect_barcode_1d(lst: &[(u8,u8,u8)]) -> Option<(u64, u16)> {
 
     let colors:Vec<&str> =  lst.iter().map(|x| closest_color(x.0, x.1, x.2)).collect();
 
-    // println!("{:?}", colors);
 
     let mut red = 0_i32;
     let mut red_start = 0_usize;
@@ -230,7 +229,7 @@ pub fn detect_barcodes(data: &mut [u8], width: u32, height: u32, device_time: &D
                 val: DataValue::ClockOffset(device_time.clone()),
             }
          );
-         println!("managed to read barcode");
+         crate::dbp!("managed to read barcode");
      }
     }
 

@@ -15,6 +15,7 @@ pub mod tasks;
 pub mod data;
 pub mod util;
 pub mod macros;
+pub mod command_pool;
 
 
 #[macroquad::main(window_conf)]
@@ -42,9 +43,9 @@ async fn main() {
     }
 
     match exiftool::ExifTool::new() {
-        Ok(_) => {println!("exiftool is installed")},
+        Ok(_) => {crate::dbp!("exiftool is installed")},
         Err(e) => {
-            println!("{e:?}");
+            crate::dbp!("{e:?}");
             state.add_task(build_install_exiftools_task());
         },
     }

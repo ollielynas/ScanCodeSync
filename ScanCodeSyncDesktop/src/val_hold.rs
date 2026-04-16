@@ -6,7 +6,7 @@ use directories::ProjectDirs;
 use egui_macroquad::egui::ahash::HashSet;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-use crate::{data::timeline::Timeline, util::get_project_dir};
+use crate::{data::timeline::Timeline, state::SaveLocationOptions, util::get_project_dir};
 
 #[derive(Clone, Serialize)]
 pub enum ValueHolder<T> where T: PlaceholderDisplayValue + Clone + Serialize + DeserializeOwned   {
@@ -42,11 +42,11 @@ impl<T> ValueHolder<T> where T: PlaceholderDisplayValue + Clone + Serialize + De
                 let json_data = fs::read_to_string(path)?;
                 // Deserialise the JSON directly back into the expected type T
                 let value: T = serde_json::from_str(&json_data)?;
-                println!("{}", value.placeholder_text());
+                crate::dbp!("{}", value.placeholder_text());
                 // Put it into the holder as a fresh 'Value' variant
                 *self = ValueHolder::Value(Box::new(value));
             } else {
-                println!("path does not exist {:?}", path);
+                crate::dbp!("path does not exist {:?}", path);
             }
             Ok(())
         }
@@ -133,6 +133,13 @@ impl PlaceholderDisplayValue for Timeline {
         return format!("{} timeline entries", self.entries.len())
     }
 }
+impl PlaceholderDisplayValue for SaveLocationOptions {
+    fn placeholder_text(&self) -> String {
+        return format!("{:#?}", self)
+    }
+}
+
+
 
 
 pub trait ValueHolderExt {

@@ -4,7 +4,7 @@ use anyhow::bail;
 use atomic_progress::{Progress, ProgressBuilder};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{data::{data_entry::{DataValue, DeviceTime, TimelineEntry}, file_metadata::{get_creation_time_ms, get_device_id}, process_files::{self, attempt_process_file}, timeline::{self, Timeline}}, populate_field, task::Task, tasks::task_builders::{build_update_input_files_list_task, build_update_unsorted_files_list_task}, util::recurse_files};
+use crate::{data::{data_entry::{DataValue, DeviceTime, TimelineEntry}, file_metadata::{get_creation_time_ms, get_device_id}, process_files::{self, attempt_process_file}, timeline::{self, Timeline}}, populate_field, state::SaveLocationOptions, task::Task, tasks::task_builders::{build_update_input_files_list_task, build_update_unsorted_files_list_task}, util::recurse_files};
 
 // thread_local! {
 //     static EXIFTOOL: RefCell<Option<exiftool::ExifTool>> = RefCell::new(None);
@@ -12,7 +12,7 @@ use crate::{data::{data_entry::{DataValue, DeviceTime, TimelineEntry}, file_meta
 
 
 pub struct ProcessUnsortedFilesTask {
-    handle: Option<thread::JoinHandle<anyhow::Result<(Vec<PathBuf>, Timeline, PathBuf)>>>,
+    handle: Option<thread::JoinHandle<anyhow::Result<(Vec<PathBuf>, Timeline, PathBuf, SaveLocationOptions)>>>,
     progress: Progress,
     id: u64,
     finished: bool,
@@ -42,14 +42,17 @@ impl Task for ProcessUnsortedFilesTask {
         let files: Vec<PathBuf>;
         let mut timeline: Timeline;
         let output_folder: PathBuf;
+        let slo: SaveLocationOptions;
         if [
                 state.unsorted_files.available(),
                 state.timeline.available(),
+                state.save_location_options.available(),
                 state.output_folder.available(),
                 ].iter().all(|x| *x) {
                     files =  state.unsorted_files.depopulate(self.id)?.to_vec();
                     output_folder =  *state.output_folder.depopulate(self.id)?;
                     timeline =  *state.timeline.depopulate(self.id)?;
+                    slo =  *state.save_location_options.depopulate(self.id)?;
             }else {
                 anyhow::bail!("list of new files is being used");
             }
@@ -62,14 +65,14 @@ impl Task for ProcessUnsortedFilesTask {
         progress.bump();
         progress.set_item("starting thread");
 
-
+        let pool = state.command_pool.with_id(self.id).clone();
 
         self.handle = Some(thread::spawn(move || {
 
 
-            timeline.sort_files(&output_folder, progress)?;
+            timeline.sort_files(&output_folder, progress, slo, pool)?;
 
-            return Ok((vec![], timeline, output_folder))
+            return Ok((vec![], timeline, output_folder, slo))
         }));
         return Ok(());
 
@@ -103,9 +106,11 @@ impl Task for ProcessUnsortedFilesTask {
         match resault {
             Ok(Ok(a)) => {
 
+
                 populate_field!(state, unsorted_files, a.0)?;
                 populate_field!(state, timeline, a.1)?;
                 populate_field!(state, output_folder, a.2)?;
+                populate_field!(state, save_location_options, a.3)?;
 
                 return Ok(());
             }

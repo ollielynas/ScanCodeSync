@@ -41,9 +41,23 @@ pub fn render_state(state: &mut State) {
                 if ui.button(format!("Process {} from input", state.new_files.to_string())).clicked() {
                     let _ = state.add_task(build_process_new_files_task());
                 }
-                if ui.button(format!("Sort {} processed files", state.unsorted_files.to_string())).clicked() {
-                    let _ = state.add_task(build_process_unsorted_files_task());
-                }
+                match &mut state.save_location_options {
+                    crate::val_hold::ValueHolder::Value(slo) => {
+                        if ui.button(format!("Sort {} processed files", state.unsorted_files.to_string())).clicked() {
+                            slo.popup_open = true;
+                        }
+                        if slo.render(egui_ctx, state.output_folder.to_string()) {
+                            slo.popup_open = false;
+                            let _ = state.add_task(build_process_unsorted_files_task());
+                        }
+                    },
+                    crate::val_hold::ValueHolder::BackupValue(_, _) => {
+                        if ui.button(format!("Sort {} processed files", state.unsorted_files.to_string())).clicked() {
+                                let _ = state.add_task(build_process_unsorted_files_task());
+                        }
+                    },
+                };
+
                 });
 
                 if add_task_id != 0 {
@@ -103,7 +117,13 @@ pub fn render_state(state: &mut State) {
                 ui.label(state.timeline.used_by_string());
                 ui.end_row();
 
+
+
                 });
+                ui.separator();
+                let _ = state.command_pool_ui.render(ui);
+//
+
             });
         egui::CentralPanel::default()
             .show(egui_ctx, |ui| {

@@ -46,11 +46,11 @@ pub enum DataValue {
 
 
     MediaCreated(PathBuf),
-    RenameDevice(String),
+    RenameDevice((DeviceId, String)),
 }
 
 impl TimelineEntry {
-    pub fn from_csv_row(row: &str) -> anyhow::Result<TimelineEntry> {
+    pub fn from_csv_row(row: &str, scan_device_id: Option<&DeviceId>) -> anyhow::Result<TimelineEntry> {
         let mut vals: Vec<&str> = row.split(",").collect();
         let cols: [&str; 4] = vals.as_mut_slice().try_into()?;
 
@@ -82,7 +82,7 @@ impl TimelineEntry {
                 ("enableTakeNumber", "true"|"True") => DataValue::EnableTakeNumber(true),
                 ("enableTakeNumber", "false"|"False") => DataValue::EnableTakeNumber(false),
                 ("takeNumber", s) => DataValue::TakeNumber(s.parse()?),
-                ("renameDevice", s) => DataValue::RenameDevice(s.to_string()),
+                ("renameDevice", s) if scan_device_id.is_some() => DataValue::RenameDevice((scan_device_id.unwrap().clone(), s.to_string())),
 
 
                 (k,v) => {anyhow::bail!("failed to parse key value pair; {k}:{v}")}
