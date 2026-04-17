@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-#[cfg(target_os = "windows")]
 
 use chrono::{TimeZone, Utc};
 use anyhow::{Context, Result, anyhow};

@@ -1,7 +1,8 @@
-use std::{sync::Arc, time::{Duration, Instant}};
+use std::{process::Command, sync::Arc, time::{Duration, Instant}};
 
 use egui_macroquad::egui::{self, Ui, ahash::{HashMap, HashSet}, mutex::Mutex};
 use exiftool::ExifTool;
+use ffmpeg_sidecar::command::FfmpegCommand;
 
 
 #[derive(Clone)]
@@ -40,22 +41,49 @@ impl SharedCommandPool {
 
         Ok(ExifTool::new()?) // constructed outside the lock
     }
-    pub fn get_ffmpeg_command(&self) -> anyhow::Result<ExifTool> {
+    pub fn get_ffmpeg_command(&self) -> anyhow::Result<FfmpegCommand> {
         // Check for an existing tool under the lock
         let existing = {
             let mut pool = self.inner.lock();
-            pool.get_exif_command(self.id)
-        }; // <-- lock dropped here before the slow ExifTool::new()
+            pool.get_ffmpeg_command(self.id)
+        };
 
         if let Some(tool) = existing {
             return Ok(tool);
         }
 
-        Ok(ExifTool::new()?) // constructed outside the lock
+        Ok(FfmpegCommand::new()) // constructed outside the lock
     }
+    pub fn get_magick_command(&self) -> anyhow::Result<Command> {
+        // Check for an existing tool under the lock
+        let existing = {
+            let mut pool = self.inner.lock();
+            pool.get_magick_command(self.id)
+        };
+
+        if let Some(tool) = existing {
+            return Ok(tool);
+        }
+
+        let mut cmd = Command::new("magick");
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000);
+        }
+
+        Ok(cmd) // constructed outside the lock
+    }
+
 
     pub fn return_exif_command(&self, tool: ExifTool) {
         self.inner.lock().return_exif_command(self.id, tool);
+    }
+    pub fn return_ffmpeg_command(&self, tool: FfmpegCommand) {
+        self.inner.lock().return_ffmpeg_command(self.id, tool);
+    }
+    pub fn return_magick_command(&self, tool: Command) {
+        self.inner.lock().return_magick_command(self.id, tool);
     }
 
     pub fn prune_commands(&self, task_ids: &HashSet<u64>) {
@@ -66,11 +94,21 @@ impl SharedCommandPool {
 
 struct CommandPool {
     exiftool: Vec<ExifToolHolder>,
+    magick: Vec<MagickHolder>,
+    ffmpeg: Vec<FfmpegHolder>,
 }
 
 
 struct ExifToolHolder {
     cmd: Option<ExifTool>,
+    task_id: u64,
+}
+struct FfmpegHolder {
+    cmd: Option<FfmpegCommand>,
+    task_id: u64,
+}
+struct MagickHolder {
+    cmd: Option<Command>,
     task_id: u64,
 }
 
@@ -79,6 +117,8 @@ impl CommandPool {
     pub fn new() -> CommandPool {
         return CommandPool {
             exiftool: vec![],
+            magick: vec![],
+            ffmpeg: vec![],
         }
     }
 
@@ -99,6 +139,38 @@ impl CommandPool {
 
         return None;
     }
+    pub fn get_magick_command(&mut self, task_id: u64) -> Option<Command> {
+
+        // this is not yet supported
+
+        // for tool in &mut self.magick {
+        //     if tool.task_id == task_id {
+        //         if let Some(t) = tool.cmd.take() {
+        //             return Some(t);
+        //         }
+        //     }
+        // }
+        // self.magick.push(MagickHolder { cmd: None, task_id });
+
+
+        return None;
+    }
+    pub fn get_ffmpeg_command(&mut self, task_id: u64) -> Option<FfmpegCommand> {
+
+        // ffmpeg is not currently supported
+
+        // for tool in &mut self.exiftool {
+        //     if tool.task_id == task_id {
+        //         if let Some(t) = tool.cmd.take() {
+        //             return Some(t);
+        //         }
+        //     }
+        // }
+        // self.exiftool.push(ExifToolHolder { cmd: None, task_id });
+
+
+        return None;
+    }
     pub fn return_exif_command(&mut self, task_id: u64, tool: ExifTool) {
         for t in &mut self.exiftool {
             if t.task_id == task_id {
@@ -111,6 +183,36 @@ impl CommandPool {
         self.exiftool.push(
             ExifToolHolder { cmd: Some(tool), task_id }
         );
+    }
+    pub fn return_magick_command(&mut self, task_id: u64, tool: Command) {
+
+        drop(tool);
+        return;
+
+        // for t in &mut self.magick {
+        //     if t.task_id == task_id {
+        //         if t.cmd.is_none() {
+        //             t.cmd = Some(tool);
+        //             return
+        //         }
+        //     }
+        // }
+        // self.magick.push(
+        //     MagickHolder { cmd: Some(tool), task_id }
+        // );
+    }
+    pub fn return_ffmpeg_command(&mut self, task_id: u64, tool: FfmpegCommand) {
+        // for t in &mut self.ffmpeg {
+        //     if t.task_id == task_id {
+        //         if t.cmd.is_none() {
+        //             t.cmd = Some(tool);
+        //             return
+        //         }
+        //     }
+        // }
+        // self.ffmpeg.push(
+        //     Ffmpeg { cmd: Some(tool), task_id }
+        // );
     }
 }
 
@@ -137,6 +239,30 @@ impl SharedCommandPoolUiState {
                     self.exif_tools.insert(t.task_id, (0,0));
                 };
                 let (used, unused) = self.exif_tools.get_mut(&t.task_id).ok_or(anyhow::anyhow!("failed to get value"))?;
+                if t.cmd.is_some() {
+                    *used += 1;
+                }else {
+                    *unused += 1;
+                }
+            }
+            self.magick_tools.clear();
+            for t in &pool.magick {
+                if !self.magick_tools.contains_key(&t.task_id){
+                    self.magick_tools.insert(t.task_id, (0,0));
+                };
+                let (used, unused) = self.magick_tools.get_mut(&t.task_id).ok_or(anyhow::anyhow!("failed to get value"))?;
+                if t.cmd.is_some() {
+                    *used += 1;
+                }else {
+                    *unused += 1;
+                }
+            }
+            self.ffmpeg_tools.clear();
+            for t in &pool.ffmpeg {
+                if !self.ffmpeg_tools.contains_key(&t.task_id){
+                    self.ffmpeg_tools.insert(t.task_id, (0,0));
+                };
+                let (used, unused) = self.ffmpeg_tools.get_mut(&t.task_id).ok_or(anyhow::anyhow!("failed to get value"))?;
                 if t.cmd.is_some() {
                     *used += 1;
                 }else {
@@ -181,6 +307,11 @@ impl SharedCommandPoolUiState {
     }
 
     pub fn new(pool: SharedCommandPool) -> SharedCommandPoolUiState {
-        SharedCommandPoolUiState { last_updated: Instant::now(), pool, exif_tools: HashMap::default() }
+        SharedCommandPoolUiState {
+            last_updated: Instant::now(), pool,
+            exif_tools: HashMap::default(),
+            ffmpeg_tools: HashMap::default(),
+            magick_tools: HashMap::default(),
+        }
     }
 }

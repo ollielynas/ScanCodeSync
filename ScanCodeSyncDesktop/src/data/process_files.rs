@@ -1,12 +1,11 @@
-use std::{fs, path::PathBuf, process::{Command, Stdio}};
+use std::{fs, path::PathBuf, process::{Stdio}};
 use anyhow::Context;
 use atomic_progress::Progress;
-use exiftool::ExifTool;
 use ffmpeg_sidecar::{self, command::FfmpegCommand, event::FfmpegEvent};
 use image::GrayImage;
 use rqrr::PreparedImage;
 
-use crate::{command_pool::SharedCommandPool, data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, file_metadata::{get_creation_time_ms, get_device_id}}, util::FFMPEG_FRMATS};
+use crate::{command_pool::SharedCommandPool, data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, file_metadata::{get_creation_time_ms, get_device_id}}, dbp, util::FFMPEG_FRMATS};
 
 
 fn process_csv_text(text: String, recording_device_id: Option<&DeviceId>) -> Vec<TimelineEntry> {
@@ -14,24 +13,11 @@ fn process_csv_text(text: String, recording_device_id: Option<&DeviceId>) -> Vec
 }
 
 
-fn scan_qr(data: &[u8], width: u32, height: u32) -> Vec<String> {
-    let pixel_count = (width * height) as usize;
-    let mut gray = Vec::with_capacity(pixel_count);
+fn scan_qr(data: Vec<u8>, width: u32, height: u32) -> Vec<String> {
+    dbp!("{}x{}", width, height);
 
 
-    // this bit is responsible for a good chunk of the flame graph
-
-    // Safety: chunks_exact already guarantees 3-byte alignment,
-    // but a manual loop lets the compiler auto-vectorise (SIMD) more easily
-    for i in 0..pixel_count {
-        let base = i * 3;
-        let luma = (data[base] as u32 * 77
-            + data[base + 1] as u32 * 150
-            + data[base + 2] as u32 * 29) >> 8;
-        gray.push(luma as u8);
-    }
-
-    let gray_img = GrayImage::from_raw(width, height, gray)
+    let gray_img = GrayImage::from_raw(width, height, data)
         .expect("buffer dimensions don't match data length");
 
     let mut prepared = PreparedImage::prepare(gray_img);
@@ -65,7 +51,7 @@ fn process_timecodes_from_string(codes: Vec<String>) -> Option<DeviceTime> {
     }
 }
 
-fn process_raw_data(data: &mut [u8], height: u32, width: u32, entries: &mut Vec<TimelineEntry>, camera_id: &DeviceId, creation_time: u64, timestamp: f32) {
+fn process_raw_data(data:Vec<u8>, height: u32, width: u32, entries: &mut Vec<TimelineEntry>, camera_id: &DeviceId, creation_time: u64, timestamp: f32) {
     let time = DeviceTime {
         // I should try to avoid this clone
         device_id: camera_id.clone(),
@@ -115,66 +101,63 @@ fn process_raw_file(path: &PathBuf, command_pool: SharedCommandPool, filetype: S
     let creation_time = get_creation_time_ms(&path, &ex)?;
     let camera_id = get_device_id(&path, &ex)?;
     command_pool.return_exif_command(ex);
+
+
+
     if FFMPEG_FRMATS.contains(&filetype) {
         FfmpegCommand::new()
-
-                .input(path.to_str().context("path contained non utf8 chars")?)
-                .rawvideo()          // shorthand for: -f rawvideo -pix_fmt rgb24 pipe:1
-                .create_no_window()
-
-                .duration("45")
-                .args(["-vf", "fps=10,scale=1080:-1,mpdecimate -loglevel debug"])
-                .spawn()?
-                .iter()?
-                .for_each(|event| {
-                    if let FfmpegEvent::OutputFrame(mut frame) = event {
-                        process_raw_data(&mut frame.data, frame.height, frame.width, &mut entries, &camera_id, creation_time, frame.timestamp);
-                    }
-                });
+            .input(path.to_str().context("path contained non utf8 chars")?)
+            .create_no_window()
+            .duration("45")
+            .args(["-vf", "fps=10,scale=1080:-1"])
+            .args(["-f", "rawvideo", "-pix_fmt", "gray", "pipe:1"])  // gray instead of rgb24
+            .spawn()?
+            .iter()?
+            .for_each(|event| {
+                if let FfmpegEvent::OutputFrame(mut frame) = event {
+                    process_raw_data(frame.data, frame.height, frame.width, &mut entries, &camera_id, creation_time, frame.timestamp);
+                }
+            });
     }else {
-        let mut cmd = Command::new("magick");
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            cmd.creation_flags(0x08000000);
-        }
-        let output = cmd
-            .args(["identify", "-format", "%w %h"])
-            .arg(path)
-            .output()
-            .expect("Failed to execute command");
+        let mut cmd = command_pool.get_magick_command()?;
+        let mut output = cmd
+            .args([
+                path.to_str().unwrap(),
+                "-quiet",
+                "-scale", "1024x1024>",
+                "-colorspace", "Gray",
+                "-depth", "8",
+                "-write", "info:fd:2",
+                "gray:-",
+            ])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()?;
+        let stderr_output = String::from_utf8_lossy(&output.stderr);
 
-        let result = String::from_utf8_lossy(&output.stdout);
-        let dims: Vec<&str> = result.split_whitespace().collect();
+        // Find the part that looks like "1024x766"
+        let dims: Vec<u32> = stderr_output
+            .split_whitespace()
+            .find(|s| s.contains('x') && s.chars().all(|c| c.is_numeric() || c == 'x'))
+            .unwrap_or("")
+            .split('x')
+            .filter_map(|s| s.parse::<u32>().ok())
+            .collect();
 
-        let mut width: u32 = 0;
-        let mut height: u32 = 0;
         if dims.len() == 2 {
-                width = dims[0].parse().unwrap_or(0);
-                height = dims[1].parse().unwrap_or(0);
+            let width = dims[0];
+            let height = dims[1];
+            dbp!("Parsed: {}x{}", width, height);
+            process_raw_data(output.stdout, height, width, &mut entries, &camera_id, creation_time, 0.0);
+        } else {
+            dbp!("Failed to find dimensions in: {}", stderr_output);
         }
 
-        if width > 0 && height > 0 {
 
-            let mut cmd = Command::new("magick");
-            #[cfg(windows)]
-            {
-                use std::os::windows::process::CommandExt;
-                cmd.creation_flags(0x08000000);
-            }
+        command_pool.return_magick_command(cmd);
 
-            let child = cmd
-                .arg(&path)
-                .args(["-depth", "8", "rgb:-"])
-                .stdout(Stdio::piped())
-                .spawn()?;
 
-            if let Ok(mut output) = child.wait_with_output() {
-                // let height = output.stdout.len() as u32 / (3 * 1080);
-                process_raw_data(&mut output.stdout, height, width, &mut entries, &camera_id, creation_time, 0.0);
-            }
 
-        }
 
 
     }
