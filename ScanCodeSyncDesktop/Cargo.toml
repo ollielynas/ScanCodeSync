@@ -1,6 +1,6 @@
 [package]
 name = "ScanCodeSyncDesktop"
-version = "0.0.7"
+version = "0.0.9"
 edition = "2024"
 license = "GPL-3.0"
 authors = [ "Ollie Lynas <sync@ollielynas.com>",]

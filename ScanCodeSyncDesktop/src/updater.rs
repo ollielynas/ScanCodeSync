@@ -1,9 +1,14 @@
 use anyhow::{Context, Result, bail};
 use semver::Version;
 use serde::Deserialize;
+#[cfg(target_os = "windows")]
+use tempfile::TempPath;
 use std::collections::HashMap;
 use std::path::Path;
 use std::process::Command;
+
+use crate::dbp;
+use crate::util::get_project_dir;
 
 const MANIFEST_URL: &str = "https://sync-home.ollielynas.com/latest.json";
 const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -78,7 +83,7 @@ pub fn download_and_install() -> Result<()> {
         .context("Failed to download update")?
         .bytes()
         .context("Failed to read update download")?;
-
+    dbp!("downloaded from {}", asset.url);
     verify_sha256(&bytes, &asset.signature)?;
 
     let ext = if cfg!(target_os = "windows") { ".msi" }
@@ -89,12 +94,16 @@ pub fn download_and_install() -> Result<()> {
         .suffix(ext)
         .tempfile()
         .context("Failed to create temp file for update")?;
-
+    dbp!("{tmp:?}");
     std::io::Write::write_all(&mut tmp, &bytes)
         .context("Failed to write update to temp file")?;
-
+    let dir = get_project_dir()?;
+    let p_path = dir.cache_dir().join(format!("update{ext}"));
     let tmp_path = tmp.into_temp_path();
-    install_update(tmp_path.to_str().context("Temp path is not valid UTF-8")?)
+    tmp_path.persist(&p_path)?;
+    install_update(&p_path)?;
+    // let _ = std::fs::remove_file(p_path);
+    Ok(())
 }
 
 fn verify_sha256(data: &[u8], expected: &str) -> Result<()> {
@@ -107,9 +116,14 @@ fn verify_sha256(data: &[u8], expected: &str) -> Result<()> {
 }
 
 #[cfg(target_os = "windows")]
-fn install_update(path: &str) -> Result<()> {
+fn install_update(path: &Path) -> Result<()> {
+    use crate::dbp;
+
+    dbp!("updating from path: {path:?}");
     let status = Command::new("msiexec")
-        .args(["/i", path, "/quiet", "/norestart"])
+        .args(["/i"])
+        .arg(path)
+        .args(["/norestart"])
         .status()
         .context("Failed to launch msiexec")?;
 
@@ -120,7 +134,7 @@ fn install_update(path: &str) -> Result<()> {
 }
 
 #[cfg(target_os = "macos")]
-fn install_update(path: &str) -> Result<()> {
+fn install_update(path: &Path) -> Result<()> {
     Command::new("open")
         .arg(path)
         .status()
@@ -129,9 +143,8 @@ fn install_update(path: &str) -> Result<()> {
 }
 
 #[cfg(target_os = "linux")]
-fn install_update(path: &str) -> Result<()> {
-    let path = Path::new(path);
-    self_update::Extract::from_source(path)
+fn install_update(path: &Path) -> Result<()> {
+    self_update::Extract::from_source(&path)
         .extract_into(&std::env::current_exe()
             .context("Could not determine current exe path")?
             .parent()
