@@ -60,7 +60,7 @@ impl<T> ValueHolder<T> where T: PlaceholderDisplayValue + Clone + Serialize + De
 
         // 1. Serialize and save the specific field to its own file
         let json = serde_json::to_string_pretty(&value)?;
-        let _  = std::fs::create_dir(dir.config_local_dir());
+        let _  = std::fs::create_dir_all(dir.config_local_dir());
         std::fs::write(save_path, json)?;
 
         // 2. Your existing swap logic

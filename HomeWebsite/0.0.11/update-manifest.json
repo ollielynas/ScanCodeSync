@@ -1,0 +1,19 @@
+{
+  "version": "0.0.11",
+  "notes": "Release v0.0.11",
+  "pub_date": "2026-04-19T07:53:58Z",
+  "platforms": {
+    "darwin-x86_64": {
+      "url": "https://sync-home.ollielynas.com/0.0.11/ScanCodeSync-0.0.11.dmg",
+      "signature": "sha256:a71e8d6c6a7c9eba7cdf975ff5a3313927f586bc70f7597155c40283ef5df625"
+    },
+    "linux-x86_64": {
+      "url": "https://sync-home.ollielynas.com/0.0.11/ScanCodeSync-0.0.11.flatpak",
+      "signature": "sha256:f1c2efb144ae527486e8eaf826da10bd68957f7fc0f07f0c4be1da2d4184c7e3"
+    },
+    "windows-x86_64": {
+      "url": "https://sync-home.ollielynas.com/0.0.11/ScanCodeSyncDesktop-0.0.11-x86_64.msi",
+      "signature": "sha256:9c365a233754b5a9a5f7e08fd0932005fb6d87ec5db5312d903d86c55efbcdea"
+    }
+  }
+}

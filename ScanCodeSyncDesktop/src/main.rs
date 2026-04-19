@@ -24,11 +24,21 @@ pub mod updater;
 async fn main() {
 
     panic::set_hook(Box::new(|a| {
-        rfd::MessageDialog::new()
+        let panic_text = format!("an error occurred:\n{}", a);
+
+        #[cfg(target_os = "macos")]
+        {dispatch::Queue::main().exec_sync(||rfd::MessageDialog::new()
             .set_level(rfd::MessageLevel::Error)
             .set_title("Program has crashed")
-            .set_description(format!("an error occurred:\n{}", a))
-            .show();
+            .set_description(panic_text)
+            .show())};
+
+        #[cfg(not(target_os = "macos"))]
+        {rfd::MessageDialog::new()
+            .set_level(rfd::MessageLevel::Error)
+            .set_title("Program has crashed")
+            .set_description(panic_text)
+            .show()};
     }));
 
 
@@ -38,7 +48,22 @@ async fn main() {
                 println!("Update available: v{}\n{}", version, notes);
                 // In a GUI app: show a dialog asking the user to update
                 // In a CLI app: print a notice and optionally auto-update
-                if rfd::MessageDialog::new()
+                #[cfg(target_os = "macos")]
+                {if dispatch::Queue::main().exec_sync(||rfd::MessageDialog::new()
+                    .set_title("New Version Available")
+                    .set_description(format!("Update available\n{}\n Would You like to update?", notes))
+                    .set_buttons(rfd::MessageButtons::YesNo)
+                    .show()) == MessageDialogResult::Yes
+                {
+                    if let Err(e) = updater::download_and_install() {
+                        dispatch::Queue::main().exec_sync(||rfd::MessageDialog::new()
+                            .set_title("Update Failed")
+                            .set_description(e.to_string())
+                            .show());
+                    }
+                }}
+                #[cfg(not(target_os = "macos"))]
+                {if rfd::MessageDialog::new()
                     .set_title("New Version Available")
                     .set_description(format!("Update available\n{}\n Would You like to update?", notes))
                     .set_buttons(rfd::MessageButtons::YesNo)
@@ -50,7 +75,7 @@ async fn main() {
                             .set_description(e.to_string())
                             .show();
                     }
-                }
+                }}
             }
             Ok(updater::UpdateStatus::PlatformNotSupported) => {
                 // No update for this platform yet — silently do nothing

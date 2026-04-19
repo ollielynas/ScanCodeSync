@@ -68,10 +68,18 @@ impl Task for ProcessInputFilesTask {
             Ok(a) => a,
             Err(_) => {
 
-                rfd::MessageDialog::new().set_buttons(rfd::MessageButtons::Ok)
+                #[cfg(target_os = "macos")]
+                {dispatch::Queue::main().exec_sync(||rfd::MessageDialog::new().set_buttons(rfd::MessageButtons::Ok)
                     .set_title("ExifTool Is Not Installed")
                     .set_description("This function relies on ExifTool.\nPlease Install it from https://exiftool.org/")
-                    .show();
+                    .show());}
+
+                #[cfg(not(target_os = "macos"))]
+                {rfd::MessageDialog::new().set_buttons(rfd::MessageButtons::Ok)
+                    .set_title("ExifTool Is Not Installed")
+                    .set_description("This function relies on ExifTool.\nPlease Install it from https://exiftool.org/")
+                    .show();}
+
                 crate::dbp!("showed message, should bail next");
                 anyhow::bail!("exif tool is not installed");
             },

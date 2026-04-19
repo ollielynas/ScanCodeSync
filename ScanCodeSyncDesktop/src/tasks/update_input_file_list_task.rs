@@ -77,7 +77,7 @@ impl Task for UpdateInputFileListTask {
     }
 
     fn silent(&self) -> bool {
-        false
+        true
     }
 
     /// I think this is unfinished so like; todo: finish
@@ -101,7 +101,7 @@ impl Task for UpdateInputFileListTask {
             Ok(Ok(a)) => {
 
                 populate_field!(state, input_folder, a.input_folder)?;
-                populate_field!(state, new_files, a.new_files);
+                populate_field!(state, new_files, a.new_files)?;
 
                 return Ok(());
             }

@@ -3,7 +3,7 @@ import subprocess
 from turtle import down
 
 # Configuration
-IP = "100.83.221.108"
+IP = "100.73.58.81"
 USER = "ollie"
 REMOTE_DIR = "~/Projects/ScanCodeSync"
 APP_NAME = "ScanCodeSync"
@@ -19,8 +19,11 @@ def run_build_rust_over_ssh():
     os.chdir(script_dir)
 
     print("--- Packaging local source ---")
+    result = subprocess.run(["git", "ls-files", "-z"], capture_output=True, check=True)
     subprocess.run(
-        ["tar", "--exclude=target", "-czf", "project.tar.gz", "."], check=True
+        ["tar", "--null", "-T", "-", "-czf", "project.tar.gz"],
+        input=result.stdout,
+        check=True,
     )
 
     print(f"--- Uploading to {IP} ---")
@@ -57,7 +60,7 @@ def run_build_rust_over_ssh():
     <key>CFBundleExecutable</key>
     <string>ScanCodeSync</string>
     <key>CFBundleIdentifier</key>
-    <string>com.yourname.scancodesync</string>
+    <string>com.ollielynas.scancodesync</string>
     <key>CFBundleName</key>
     <string>ScanCodeSync</string>
     <key>CFBundlePackageType</key>

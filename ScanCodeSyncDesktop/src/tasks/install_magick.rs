@@ -40,7 +40,28 @@ impl Task for InstallMagickTask {
         let progress = self.progress.clone();
         self.finished = false;
         self.handle = Some(thread::spawn(move || {
-            if matches!(
+            #[cfg(target_os = "macos")]
+            {if matches!(
+                dispatch::Queue::main().exec_sync(||rfd::MessageDialog::new().set_title("Install ImageMagick")
+                .set_description("This software relies on ImageMagick, would you like to install it?")
+                .set_buttons(rfd::MessageButtons::YesNo)
+                .show()), MessageDialogResult::Yes)
+            {
+                    match install_magick(&progress) {
+                        Ok(_) => {
+                        },
+                        Err(e) => {
+                            dispatch::Queue::main().exec_sync(|| rfd::MessageDialog::new()
+                                .set_title("Failed to Install ImageMagick")
+                                .set_description(format!("{e:?}\nPlease attempt to install yourself from:\n https://imagemagick.org"))
+                                .set_level(rfd::MessageLevel::Error).show());
+                        },
+                    }
+                }else {
+                    bail!("user chose to not install");
+                }}
+            #[cfg(not(target_os = "macos"))]
+            {if matches!(
                 rfd::MessageDialog::new().set_title("Install ImageMagick")
                 .set_description("This software relies on ImageMagick, would you like to install it?")
                 .set_buttons(rfd::MessageButtons::YesNo)
@@ -58,7 +79,7 @@ impl Task for InstallMagickTask {
                     }
                 }else {
                     bail!("user chose to not install");
-                }
+                }}
             return Ok(());
         }));
         return Ok(());

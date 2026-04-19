@@ -43,7 +43,34 @@ impl Task for InstallFfmpegTask {
         self.finished = false;
 
         self.handle = Some(thread::spawn(move || {
-            if matches!(
+            #[cfg(target_os = "macos")]
+            {if matches!(
+                dispatch::Queue::main().exec_sync(||rfd::MessageDialog::new()
+                    .set_title("Install FFmpeg")
+                    .set_description("This software requires FFmpeg. Would you like to download it now?")
+                    .set_buttons(rfd::MessageButtons::YesNo)
+                    .show()),
+                MessageDialogResult::Yes
+            ) {
+
+                let dir = get_project_dir()?;
+                let cdir = dir.cache_dir();
+                // Call the manual download logic
+                match download_and_unpack_ffmpeg(&progress, cdir.to_owned()) {
+                    Ok(_) => {},
+                    Err(e) => {
+                        dispatch::Queue::main().exec_sync(||rfd::MessageDialog::new()
+                            .set_title("Failed to Install FFmpeg")
+                            .set_description(format!("{e:?}\nPlease install FFmpeg manually."))
+                            .set_level(rfd::MessageLevel::Error).show());
+                        bail!(e);
+                    },
+                }
+            } else {
+                bail!("User chose not to install");
+            }}
+            #[cfg(not(target_os = "macos"))]
+            {if matches!(
                 rfd::MessageDialog::new()
                     .set_title("Install FFmpeg")
                     .set_description("This software requires FFmpeg. Would you like to download it now?")
@@ -67,7 +94,7 @@ impl Task for InstallFfmpegTask {
                 }
             } else {
                 bail!("User chose not to install");
-            }
+            }}
             Ok(())
         }));
         Ok(())

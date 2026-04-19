@@ -1,15 +1,15 @@
 {
-  "version": "0.0.8",
-  "notes": "Release v0.0.8",
-  "pub_date": "2026-04-19T02:21:23Z",
+  "version": "0.0.12",
+  "notes": "Release v0.0.12",
+  "pub_date": "2026-04-19T08:49:03Z",
   "platforms": {
-    "linux-x86_64": {
-      "url": "https://sync-home.ollielynas.com/0.0.8/ScanCodeSync-0.0.8.flatpak",
-      "signature": "sha256:7c7901bd750c7c479c8ab50cb35cb8f939e49c6654750cec015ef396f0eb4b42"
+    "darwin-x86_64": {
+      "url": "https://sync-home.ollielynas.com/0.0.12/ScanCodeSync-0.0.12.dmg",
+      "signature": "sha256:10ac8c6e788d7a7791db7cc3bcadb9d23a1cddc020b2108beef82aa72579a8c3"
     },
     "windows-x86_64": {
-      "url": "https://sync-home.ollielynas.com/0.0.8/ScanCodeSyncDesktop-0.0.8-x86_64.msi",
-      "signature": "sha256:de8e82ae9f529b8a590b54c646d5dbd49703cdbe1e2db0b3fa66e093fe725a37"
+      "url": "https://sync-home.ollielynas.com/0.0.12/ScanCodeSyncDesktop-0.0.12-x86_64.msi",
+      "signature": "sha256:d22f86c45f12e92489e04d30130d49212386b6ce6df9e54aaccefbd39cea2a3b"
     }
   }
 }

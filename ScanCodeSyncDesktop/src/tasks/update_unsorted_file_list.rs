@@ -77,7 +77,7 @@ impl Task for UpdateUnsortedFileListTask {
     }
 
     fn silent(&self) -> bool {
-        false
+        true
     }
 
     /// I think this is unfinished so like; todo: finish

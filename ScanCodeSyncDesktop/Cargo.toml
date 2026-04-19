@@ -1,6 +1,6 @@
 [package]
 name = "ScanCodeSyncDesktop"
-version = "0.0.9"
+version = "0.0.12"
 edition = "2024"
 license = "GPL-3.0"
 authors = [ "Ollie Lynas <sync@ollielynas.com>",]
@@ -54,3 +54,6 @@ product-icon = "src/favicon.ico"
 [package.metadata.dist]
 installers = [ "msi", "powershell", "shell",]
 targets = [ "x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu", "apple-darwin",]
+
+[target."cfg(target_os = \"macos\")".dependencies]
+dispatch = "0.2"

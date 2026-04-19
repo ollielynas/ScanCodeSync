@@ -22,6 +22,8 @@ pub struct State {
     pub command_pool: SharedCommandPool,
     pub command_pool_ui: SharedCommandPoolUiState,
 
+    pub show_detailed_info: bool,
+
 }
 
 
@@ -44,15 +46,19 @@ impl Default for State {
             command_pool: pool.clone(),
             command_pool_ui: SharedCommandPoolUiState::new(pool.clone()),
 
+            show_detailed_info: false,
+
             task_list: vec![],
         };
 
         // load values from json
         crate::dbp!("loaded {:?}", load_field!(new, input_folder));
         crate::dbp!("loaded {:?}", load_field!(new, output_folder));
+        crate::dbp!("loaded {:?}", load_field!(new, unsorted_folder));
         crate::dbp!("loaded {:?}", load_field!(new, unsorted_files));
         crate::dbp!("loaded {:?}", load_field!(new, new_files));
         crate::dbp!("loaded {:?}", load_field!(new, timeline));
+        crate::dbp!("loaded {:?}", load_field!(new, save_location_options));
 
         return new;
     }

@@ -1,6 +1,6 @@
 use std::thread;
 
-use anyhow::{Context, bail};
+use anyhow::bail;
 use atomic_progress::Progress;
 use rfd::MessageDialogResult;
 
@@ -40,7 +40,27 @@ impl Task for InstallExifToolsTask {
         let progress = self.progress.clone();
         self.finished = false;
         self.handle = Some(thread::spawn(move || {
-            if matches!(rfd::MessageDialog::new().set_title("Install ExifTools")
+            #[cfg(target_os = "macos")]
+            {if matches!(dispatch::Queue::main().exec_sync(||rfd::MessageDialog::new().set_title("Install ExifTools")
+                .set_description("This software relies on ExifTools, would you like to install it?")
+                .set_buttons(rfd::MessageButtons::YesNo)
+                .show()), MessageDialogResult::Yes) {
+                    match install_exiftool(&progress) {
+                        Ok(_) => {
+                        },
+                        Err(e) => {
+                            dispatch::Queue::main().exec_sync(||rfd::MessageDialog::new()
+                                .set_title("Failed to Install ExifTools")
+                                .set_description(format!("{e:?}\nPlease attempt to install yourself from:\nhttps://exiftool.org"))
+                                .set_level(rfd::MessageLevel::Error).show());
+                        },
+                    }
+                }else {
+                    bail!("user chose not to install");
+                }}
+
+            #[cfg(not(target_os = "macos"))]
+            {if matches!(rfd::MessageDialog::new().set_title("Install ExifTools")
                 .set_description("This software relies on ExifTools, would you like to install it?")
                 .set_buttons(rfd::MessageButtons::YesNo)
                 .show(), MessageDialogResult::Yes) {
@@ -52,12 +72,11 @@ impl Task for InstallExifToolsTask {
                                 .set_title("Failed to Install ExifTools")
                                 .set_description(format!("{e:?}\nPlease attempt to install yourself from:\nhttps://exiftool.org"))
                                 .set_level(rfd::MessageLevel::Error).show();
-                            bail!("{e}:?");
                         },
                     }
                 }else {
                     bail!("user chose not to install");
-                }
+                }}
             return Ok(());
         }));
         return Ok(());
@@ -158,6 +177,7 @@ pub fn install_exiftool(progress: &Progress) -> anyhow::Result<()> {
 }
 #[cfg(target_os = "linux")]
 pub fn install_exiftool(progress: &Progress) -> anyhow::Result<()> {
+    use anyhow::Context;
     use std::io::{BufRead, BufReader};
     use std::process::{Command, Stdio};
 
@@ -202,6 +222,7 @@ pub fn install_exiftool(progress: &Progress) -> anyhow::Result<()> {
 pub fn install_exiftool(progress: &Progress) -> anyhow::Result<()> {
     use std::io::{BufRead, BufReader};
     use std::process::{Command, Stdio};
+    use anyhow::Context;
 
     let mut child = Command::new("brew")
         .args(["install", "exiftool"])

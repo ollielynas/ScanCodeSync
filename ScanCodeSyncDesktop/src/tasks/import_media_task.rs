@@ -60,6 +60,27 @@ impl Task for ImportMediaTask {
             let paths: Vec<PathBuf>;
             let mut root_folders: Vec<PathBuf> = vec![];
 
+            #[cfg(target_os = "macos")]
+            if is_files {
+                paths = dispatch::Queue::main().exec_sync(||rfd::FileDialog::new()
+                    .set_title("import files")
+                    .set_can_create_directories(false)
+                    .pick_files())
+                    .ok_or(anyhow::anyhow!("user did not pick any files"))?;
+            } else {
+                root_folders = dispatch::Queue::main().exec_sync(||rfd::FileDialog::new()
+                    .set_title("import from folders")
+                    .set_can_create_directories(false)
+                    .pick_folders())
+                    .ok_or(anyhow::anyhow!("user did not pick any folders"))?;
+
+                paths = root_folders
+                    .iter()
+                    .flat_map(|x| recurse_files(x, progress.clone()).unwrap_or_default())
+                    .collect();
+            }
+
+            #[cfg(not(target_os = "macos"))]
             if is_files {
                 paths = rfd::FileDialog::new()
                     .set_title("import files")
@@ -79,6 +100,23 @@ impl Task for ImportMediaTask {
                     .collect();
             }
 
+            #[cfg(target_os = "macos")]
+            let delete_og = match dispatch::Queue::main().exec_sync(|| rfd::MessageDialog::new()
+                .set_buttons(rfd::MessageButtons::YesNoCancel)
+                .set_title("Import Files")
+                .set_description(format!(
+                    "Ready to import {} files ({})\nKeep originals after import?",
+                    paths.len(),
+                    format_filesize_human_readable(get_total_size_of_files(&paths))
+                ))
+                .show())
+            {
+                rfd::MessageDialogResult::Yes | rfd::MessageDialogResult::Ok => false,
+                rfd::MessageDialogResult::No => true,
+                _ => bail!("user cancelled import"),
+            };
+
+            #[cfg(not(target_os = "macos"))]
             let delete_og = match rfd::MessageDialog::new()
                 .set_buttons(rfd::MessageButtons::YesNoCancel)
                 .set_title("Import Files")
