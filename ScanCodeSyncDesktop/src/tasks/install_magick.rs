@@ -4,7 +4,7 @@ use anyhow::{Context, bail};
 use atomic_progress::Progress;
 use rfd::MessageDialogResult;
 
-use crate::{ task::Task, tasks::task_builders::build_restart_task};
+use crate::{ dbp, task::Task, tasks::task_builders::build_restart_task};
 
 
 
@@ -166,6 +166,7 @@ fn install_candidates() -> Vec<(String, Vec<String>)> {
     )]
 }
 
+
 pub fn install_magick(progress: &Progress) -> anyhow::Result<()> {
     use std::io::{BufRead, BufReader};
     use std::process::{Command, Stdio};
@@ -174,14 +175,17 @@ pub fn install_magick(progress: &Progress) -> anyhow::Result<()> {
 
     for (program, args) in &candidates {
         progress.set_item(format!("Running: {program} {}...", args.join(" ")));
-
+        dbp!("{} {:?}", program, args);
         let mut child = match Command::new(program)
             .args(args)
             .stdout(Stdio::piped())
             .spawn()
         {
             Ok(c) => c,
-            Err(_) => continue, // program not found, try next
+            Err(a) => {
+                dbg!("{}:?", a);
+                continue
+            }, // program not found, try next
         };
 
         let stdout = child.stdout.take().unwrap();
@@ -200,7 +204,7 @@ pub fn install_magick(progress: &Progress) -> anyhow::Result<()> {
         }
     }
 
-    bail!("Failed to install ImageMagick. Please install manually: https://imagemagick.org/script/download.php")
+    bail!("No valid install command found")
 }
 
 /// After a silent winget install, ImageMagick may not be on PATH.

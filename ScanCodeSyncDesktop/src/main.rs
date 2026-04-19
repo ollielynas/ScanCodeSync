@@ -8,7 +8,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::util::window_conf;
+use crate::{tasks::task_builders::build_restart_task, util::{prompt_install_brew, window_conf}};
 use crate::{
     main_ui::render_state,
     state::State,
@@ -46,6 +46,7 @@ async fn main() {
             })
         };
 
+
         #[cfg(not(target_os = "macos"))]
         {
             rfd::MessageDialog::new()
@@ -55,6 +56,14 @@ async fn main() {
                 .show()
         };
     }));
+
+    let mut state = State::default();
+
+
+    // #[cfg(target_os = "macos")]
+    if matches!(prompt_install_brew(), Ok(true)) {
+        state.add_task(build_restart_task());
+    }
 
     std::thread::spawn(|| {
         match updater::check_for_update() {
@@ -122,7 +131,6 @@ async fn main() {
     //     .set_description(format!("Warning, you are on version \n{}\nThis version is not feature complete.", version))
     //     .show();
     // }
-    let mut state = State::default();
     let mut installing = false;
     if !ffmpeg_is_installed() && !installing {
         installing = true;

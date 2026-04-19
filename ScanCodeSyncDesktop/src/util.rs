@@ -288,3 +288,47 @@ pub fn epoch_ms_to_date(epoch_ms: u128) -> String {
 
     local.format("%d-%m-%Y").to_string()
 }
+
+/// return true if brew was installed and the program needs to be restarted
+pub fn prompt_install_brew() -> anyhow::Result<bool> {
+    // Check if brew is already installed
+    if std::process::Command::new("brew")
+        .arg("--version")
+        .output()
+        .is_ok()
+    {
+        return Ok(false);
+    }
+
+    let confirmed = rfd::MessageDialog::new()
+        .set_title("Homebrew Not Found")
+        .set_description("Homebrew is required but not installed. Would you like to install it now?")
+        .set_buttons(rfd::MessageButtons::YesNo)
+        .show() == rfd::MessageDialogResult::Yes;
+
+    if !confirmed {
+        anyhow::bail!("Homebrew is required. Please install it manually from https://brew.sh");
+    }
+
+    let sentinel = "/tmp/brew_install_done";
+    let script = format!(r#"tell application "Terminal"
+        activate
+        do script "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\" && touch {sentinel} && exit"
+    end tell"#);
+
+    std::process::Command::new("osascript")
+        .arg("-e")
+        .arg(&script)
+        .status()?;
+
+    // Poll until sentinel file appears
+    while !std::path::Path::new(sentinel).exists() {
+        std::thread::sleep(std::time::Duration::from_secs(1));
+    }
+    std::fs::remove_file(sentinel)?;
+
+
+
+
+    Ok(true)
+}

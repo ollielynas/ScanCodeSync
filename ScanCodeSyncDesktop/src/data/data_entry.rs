@@ -61,13 +61,13 @@ impl TimelineEntry {
             }, val: match (cols[2], cols[3]) {
 
                 ("isMaster", "true"|"True") => DataValue::IsMaster(true),
-                ("isMaster", "false"|"False") => DataValue::IsMaster(true),
+                ("isMaster", "false"|"False") => DataValue::IsMaster(false),
 
                 ("isDirector", "true"|"True") => DataValue::IsDirector(true),
-                ("isDirector", "false"|"False") => DataValue::IsDirector(true),
+                ("isDirector", "false"|"False") => DataValue::IsDirector(false),
 
                 ("isOperator", "true"|"True") => DataValue::IsOperator(true),
-                ("isOperator", "false"|"False") => DataValue::IsOperator(true),
+                ("isOperator", "false"|"False") => DataValue::IsOperator(false),
 
                 ("productionName", s) => DataValue::ProductionName(s.to_string()),
 

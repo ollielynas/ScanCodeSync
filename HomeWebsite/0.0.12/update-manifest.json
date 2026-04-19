@@ -1,7 +1,7 @@
 {
   "version": "0.0.12",
   "notes": "Release v0.0.12",
-  "pub_date": "2026-04-19T10:49:08Z",
+  "pub_date": "2026-04-19T10:57:34Z",
   "platforms": {
     "darwin-x86_64": {
       "url": "https://sync-home.ollielynas.com/0.0.12/ScanCodeSync-0.0.12.dmg",
@@ -9,7 +9,7 @@
     },
     "windows-x86_64": {
       "url": "https://sync-home.ollielynas.com/0.0.12/ScanCodeSyncDesktop-0.0.12-x86_64.msi",
-      "signature": "sha256:de6ce7d66ed7ce7ed758a945d055f5fc7c6fbab8e7dda117a40f35800261d593"
+      "signature": "sha256:b62c34bc54a354345bfb89cd0c7d1aaefa76a9a3ff23b24fa165bc883fece4ac"
     }
   }
 }
