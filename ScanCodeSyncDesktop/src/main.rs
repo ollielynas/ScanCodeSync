@@ -1,46 +1,60 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{panic, time::{Duration, Instant}};
-use ffmpeg_sidecar::{command::ffmpeg_is_installed};
+use ffmpeg_sidecar::command::ffmpeg_is_installed;
 use macroquad::prelude::*;
 use rfd::MessageDialogResult;
+use std::{
+    panic,
+    time::{Duration, Instant},
+};
 
-use crate::{ main_ui::render_state, state::State, tasks::task_builders::{build_init_task, build_install_exiftools_task, build_install_ffmpeg_task, build_install_magick_task, build_update_input_files_list_task}, util::{get_project_dir, is_magick_installed}};
 use crate::util::window_conf;
+use crate::{
+    main_ui::render_state,
+    state::State,
+    tasks::task_builders::{
+        build_init_task, build_install_exiftools_task, build_install_ffmpeg_task,
+        build_install_magick_task, build_update_input_files_list_task,
+    },
+    util::{get_project_dir, is_magick_installed},
+};
 
-pub mod val_hold;
-pub mod state;
+pub mod command_pool;
+pub mod data;
+pub mod macros;
 pub mod main_ui;
+pub mod state;
 pub mod task;
 pub mod tasks;
-pub mod data;
-pub mod util;
-pub mod macros;
-pub mod command_pool;
 pub mod updater;
-
+pub mod util;
+pub mod val_hold;
 
 #[macroquad::main(window_conf)]
 async fn main() {
-
     panic::set_hook(Box::new(|a| {
         let panic_text = format!("an error occurred:\n{}", a);
 
         #[cfg(target_os = "macos")]
-        {dispatch::Queue::main().exec_sync(||rfd::MessageDialog::new()
-            .set_level(rfd::MessageLevel::Error)
-            .set_title("Program has crashed")
-            .set_description(panic_text)
-            .show())};
+        {
+            dispatch::Queue::main().exec_sync(|| {
+                rfd::MessageDialog::new()
+                    .set_level(rfd::MessageLevel::Error)
+                    .set_title("Program has crashed")
+                    .set_description(panic_text)
+                    .show()
+            })
+        };
 
         #[cfg(not(target_os = "macos"))]
-        {rfd::MessageDialog::new()
-            .set_level(rfd::MessageLevel::Error)
-            .set_title("Program has crashed")
-            .set_description(panic_text)
-            .show()};
+        {
+            rfd::MessageDialog::new()
+                .set_level(rfd::MessageLevel::Error)
+                .set_title("Program has crashed")
+                .set_description(panic_text)
+                .show()
+        };
     }));
-
 
     std::thread::spawn(|| {
         match updater::check_for_update() {
@@ -49,33 +63,48 @@ async fn main() {
                 // In a GUI app: show a dialog asking the user to update
                 // In a CLI app: print a notice and optionally auto-update
                 #[cfg(target_os = "macos")]
-                {if dispatch::Queue::main().exec_sync(||rfd::MessageDialog::new()
-                    .set_title("New Version Available")
-                    .set_description(format!("Update available\n{}\n Would You like to update?", notes))
-                    .set_buttons(rfd::MessageButtons::YesNo)
-                    .show()) == MessageDialogResult::Yes
                 {
-                    if let Err(e) = updater::download_and_install() {
-                        dispatch::Queue::main().exec_sync(||rfd::MessageDialog::new()
-                            .set_title("Update Failed")
-                            .set_description(e.to_string())
-                            .show());
-                    }
-                }}
-                #[cfg(not(target_os = "macos"))]
-                {if rfd::MessageDialog::new()
-                    .set_title("New Version Available")
-                    .set_description(format!("Update available\n{}\n Would You like to update?", notes))
-                    .set_buttons(rfd::MessageButtons::YesNo)
-                    .show() == MessageDialogResult::Yes
-                {
-                    if let Err(e) = updater::download_and_install() {
+                    if dispatch::Queue::main().exec_sync(|| {
                         rfd::MessageDialog::new()
-                            .set_title("Update Failed")
-                            .set_description(e.to_string())
-                            .show();
+                            .set_title("New Version Available")
+                            .set_description(format!(
+                                "Update available\n{}\n Would You like to update?",
+                                notes
+                            ))
+                            .set_buttons(rfd::MessageButtons::YesNo)
+                            .show()
+                    }) == MessageDialogResult::Yes
+                    {
+                        if let Err(e) = updater::download_and_install() {
+                            dispatch::Queue::main().exec_sync(|| {
+                                rfd::MessageDialog::new()
+                                    .set_title("Update Failed")
+                                    .set_description(e.to_string())
+                                    .show()
+                            });
+                        }
                     }
-                }}
+                }
+                #[cfg(not(target_os = "macos"))]
+                {
+                    if rfd::MessageDialog::new()
+                        .set_title("New Version Available")
+                        .set_description(format!(
+                            "Update available\n{}\n Would You like to update?",
+                            notes
+                        ))
+                        .set_buttons(rfd::MessageButtons::YesNo)
+                        .show()
+                        == MessageDialogResult::Yes
+                    {
+                        if let Err(e) = updater::download_and_install() {
+                            rfd::MessageDialog::new()
+                                .set_title("Update Failed")
+                                .set_description(e.to_string())
+                                .show();
+                        }
+                    }
+                }
             }
             Ok(updater::UpdateStatus::PlatformNotSupported) => {
                 // No update for this platform yet — silently do nothing
@@ -88,30 +117,35 @@ async fn main() {
         }
     });
 
-
     // if !cfg!(debug_assertions){
     // rfd::MessageDialog::new().set_title("Beta Version")
     //     .set_description(format!("Warning, you are on version \n{}\nThis version is not feature complete.", version))
     //     .show();
     // }
     let mut state = State::default();
-
-    if !ffmpeg_is_installed() {
-         state.add_task(build_install_ffmpeg_task());
+    let mut installing = false;
+    if !ffmpeg_is_installed() && !installing {
+        installing = true;
+        state.add_task(build_install_ffmpeg_task());
     }
 
     match exiftool::ExifTool::new() {
-        Ok(_) => {crate::dbp!("exiftool is installed")},
+        Ok(_) => {
+            crate::dbp!("exiftool is installed")
+        }
         Err(e) => {
             crate::dbp!("{e:?}");
-            state.add_task(build_install_exiftools_task());
-        },
+            if !installing {
+                state.add_task(build_install_exiftools_task());
+                installing = true;
+            }
+        }
     }
 
-    if !is_magick_installed() {
+    if !is_magick_installed() && !installing {
         state.add_task(build_install_magick_task());
+        installing = true;
     }
-
 
     state.add_task(build_init_task());
 
@@ -132,10 +166,6 @@ async fn main() {
             time_10000ms = Instant::now();
             let _ = state.add_task_without_duplicate(build_update_input_files_list_task());
         }
-
-
-
-
 
         // Process keys, mouse etc.
 
