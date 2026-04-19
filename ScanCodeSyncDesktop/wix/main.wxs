@@ -136,6 +136,27 @@
                     </Directory>
                 </Directory>
             </Directory>
+
+            <Directory Id='DesktopFolder' Name='Desktop'>
+                <Component Id='DesktopShortcut' Guid='*'>
+                    <Shortcut
+                        Id='DesktopShortcutLink'
+                        Name='ScanCodeSyncDesktop'
+                        Description='Launch ScanCodeSyncDesktop'
+                        Target='[APPLICATIONFOLDER]bin\ScanCodeSyncDesktop.exe'
+                        WorkingDirectory='APPLICATIONFOLDER'
+                    />
+                    <RemoveFolder Id='RemoveDesktopShortcutFolder' On='uninstall' />
+                    <RegistryValue
+                        Root='HKCU'
+                        Key='Software\Ollie Lynas\ScanCodeSyncDesktop'
+                        Name='installed'
+                        Type='integer'
+                        Value='1'
+                        KeyPath='yes'
+                    />
+                </Component>
+            </Directory>
         </Directory>
 
         <Feature
@@ -155,6 +176,7 @@
             <ComponentRef Id='License' />
 
             <ComponentRef Id='binary0' />
+            <ComponentRef Id='DesktopShortcut' />
 
             <Feature
                 Id='Environment'

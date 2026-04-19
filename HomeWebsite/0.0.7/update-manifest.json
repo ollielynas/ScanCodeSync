@@ -1,0 +1,15 @@
+{
+  "version": "0.0.7",
+  "notes": "Release v0.0.7",
+  "pub_date": "2026-04-19T01:34:46Z",
+  "platforms": {
+    "linux-x86_64": {
+      "url": "https://sync-home.ollielynas.com/releases/0.0.7/ScanCodeSync-0.0.7.flatpak",
+      "signature": "sha256:3d7808b3744a49c66627318e22e6505447fd7888af884cb4f915a85268aa6c7b"
+    },
+    "windows-x86_64": {
+      "url": "https://sync-home.ollielynas.com/releases/0.0.7/ScanCodeSyncDesktop-0.0.7-x86_64.msi",
+      "signature": "sha256:58d08bdb06fe5982133a807551106f3df6011627fac69ee2853ba5f733f48c68"
+    }
+  }
+}

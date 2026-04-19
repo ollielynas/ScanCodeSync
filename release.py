@@ -1,10 +1,12 @@
 import ctypes
+import hashlib
+import json
 import os
 import re
 import shutil
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import toml
@@ -56,6 +58,71 @@ MAKEAPPX_PATH = (
 # Windows App Certification Kit CLI — ships with the Windows SDK
 # Typical location; update if your SDK version differs
 WACK_PATH = r"C:\Program Files (x86)\Windows Kits\10\App Certification Kit\appcert.exe"
+
+# Base URL where your website serves the release files.
+# The manifest will construct download URLs as: BASE_RELEASE_URL/{version}/{filename}
+BASE_RELEASE_URL = "https://sync-home.ollielynas.com/releases"
+
+# Maps file extensions to the platform keys used in latest.json.
+# Add extra entries here if you ever ship arm64 Windows or universal macOS builds.
+EXTENSION_TO_PLATFORM = {
+    ".msi": "windows-x86_64",
+    ".dmg": "darwin-x86_64",
+    ".flatpak": "linux-x86_64",
+}
+
+
+def sha256_of_file(path: Path) -> str:
+    """Return a lowercase hex SHA-256 digest prefixed with 'sha256:'."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return f"sha256:{h.hexdigest()}"
+
+
+def generate_update_manifest(version: str, dest_path: Path, website_dir: str):
+
+    platforms: dict[str, dict] = {}
+
+    for artifact in sorted(dest_path.iterdir()):
+        if not artifact.is_file():
+            continue
+        platform_key = EXTENSION_TO_PLATFORM.get(artifact.suffix.lower())
+        if platform_key is None:
+            continue  # .xml WACK reports, .msix, etc. — skip
+
+        print(f"   Hashing {artifact.name} …", end=" ", flush=True)
+        digest = sha256_of_file(artifact)
+        print("done")
+
+        platforms[platform_key] = {
+            "url": f"{BASE_RELEASE_URL}/{version}/{artifact.name}",
+            "signature": digest,
+        }
+
+    if not platforms:
+        print("⚠️  No recognised artifacts found — update manifest not written.")
+        return
+
+    manifest = {
+        "version": version,
+        "notes": f"Release v{version}",
+        "pub_date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "platforms": platforms,
+    }
+
+    manifest_json = json.dumps(manifest, indent=2)
+
+    # Canonical location the updater fetches (overwrite on every release)
+    latest_path = Path(website_dir) / "latest.json"
+    latest_path.write_text(manifest_json, encoding="utf-8")
+    print(f"✅ Update manifest written → {latest_path}")
+
+    # Versioned copy for auditing / rollback reference
+    versioned_path = dest_path / "update-manifest.json"
+    versioned_path.write_text(manifest_json, encoding="utf-8")
+    print(f"   Versioned copy          → {versioned_path}")
 
 
 def increment_version(version_str):
@@ -317,6 +384,47 @@ def run_wack(msix_path: Path, report_dir: Path) -> Path | None:
         return None
 
 
+def create_github_release(version: str, files: list[str], dest_path: Path):
+    tag = f"v{version}"
+    title = f"ScanCodeSync {tag}"
+
+    # Check gh is available
+    if shutil.which("gh") is None:
+        print("⚠️  GitHub CLI (gh) not found — skipping GitHub release.")
+        print("   Install it from https://cli.github.com/")
+        return
+
+    print(f"\n🐙 Creating GitHub release {tag}...")
+
+    file_paths = [str(dest_path / f) for f in files if (dest_path / f).exists()]
+
+    if not file_paths:
+        print("⚠️  No files found to attach to the GitHub release.")
+        return
+
+    try:
+        subprocess.run(
+            [
+                "gh",
+                "release",
+                "create",
+                tag,
+                "--title",
+                title,
+                "--notes",
+                f"Release {tag}",
+                "--latest",
+                *file_paths,
+            ],
+            check=True,
+        )
+        print(
+            f"✅ GitHub release created: https://github.com/ollielynas/ScanCodeSync/releases/tag/{tag}"
+        )
+    except subprocess.CalledProcessError:
+        print("❌ GitHub release failed. Run 'gh auth login' if not authenticated.")
+
+
 def main():
     # 1. Elevation check — only needed when WACK is available
     if os.path.exists(WACK_PATH) and not is_admin():
@@ -436,9 +544,19 @@ def main():
         print("⚠️  No .msix found in output folder — skipping WACK.")
 
     if moved_files:
-        # 6. Regenerate HTML from disk — picks up all versions, not just this one
+        # 6. Generate the update manifest (latest.json) from the artifacts now on disk
+        print(f"\n📋 Generating update manifest …")
+        generate_update_manifest(new_version, dest_path, WEBSITE_DIR)
+
+        # 7. Regenerate HTML from disk — picks up all versions, not just this one
         update_releases_html(WEBSITE_DIR)
         print(f"\n🎉 Success! Files are in {dest_path}")
+        if input("Create a GitHub release? [y/n]: ").strip().lower() in (
+            "y",
+            "yes",
+            "",
+        ):
+            create_github_release(new_version, moved_files, dest_path)
         os.startfile(os.path.abspath(RELEASES_HTML_PATH))
     else:
         print("⚠️ No files were found to move.")

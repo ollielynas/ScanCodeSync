@@ -1,6 +1,6 @@
 [package]
 name = "ScanCodeSyncDesktop"
-version = "0.0.7"
+version = "0.0.5"
 edition = "2024"
 license = "GPL-3.0"
 authors = [ "Ollie Lynas <sync@ollielynas.com>",]
@@ -27,6 +27,12 @@ rfd = "0.17.2"
 rqrr = "0.10.1"
 serde_json = "1.0.149"
 parking_lot = "0.12"
+
+self_update = { version = "0.41", features = ["archive-tar", "archive-zip", "compression-flate2", "compression-zip-deflate"] }
+semver = "1.0"
+reqwest = { version = "0.12", features = ["blocking", "json"] }
+tempfile = "3"
+sha2 = "0.10"
 
 [dependencies.catppuccin-egui]
 version = "5.7"

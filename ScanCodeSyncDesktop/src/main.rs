@@ -3,6 +3,7 @@
 use std::{panic, time::{Duration, Instant}};
 use ffmpeg_sidecar::{command::ffmpeg_is_installed};
 use macroquad::prelude::*;
+use rfd::MessageDialogResult;
 
 use crate::{ main_ui::render_state, state::State, tasks::task_builders::{build_init_task, build_install_exiftools_task, build_install_ffmpeg_task, build_install_magick_task, build_update_input_files_list_task}, util::{get_project_dir, is_magick_installed}};
 use crate::util::window_conf;
@@ -16,6 +17,7 @@ pub mod data;
 pub mod util;
 pub mod macros;
 pub mod command_pool;
+pub mod updater;
 
 
 #[macroquad::main(window_conf)]
@@ -28,6 +30,35 @@ async fn main() {
             .set_description(format!("an error occurred:\n{}", a))
             .show();
     }));
+
+
+    std::thread::spawn(|| {
+        match updater::check_for_update() {
+            Ok(updater::UpdateStatus::UpdateAvailable { version, notes }) => {
+                println!("Update available: v{}\n{}", version, notes);
+                // In a GUI app: show a dialog asking the user to update
+                // In a CLI app: print a notice and optionally auto-update
+                if rfd::MessageDialog::new()
+                    .set_title("New Version Available")
+                    .set_description("Update available: v{}\n{}\n Would You like to update?")
+                    .set_buttons(rfd::MessageButtons::YesNo)
+                    .show() == MessageDialogResult::Yes
+                {
+                    if let Err(e) = updater::download_and_install() {
+                        eprintln!("Update failed: {}", e);
+                    }
+                }
+            }
+            Ok(updater::UpdateStatus::PlatformNotSupported) => {
+                // No update for this platform yet — silently do nothing
+            }
+            Ok(updater::UpdateStatus::UpToDate) => {}
+            Err(e) => {
+                // Never crash the app over a failed update check
+                eprintln!("Update check failed: {}", e);
+            }
+        }
+    });
 
     let version = env!("CARGO_PKG_VERSION");
 
