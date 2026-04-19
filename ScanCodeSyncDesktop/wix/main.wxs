@@ -57,7 +57,7 @@
 
     <Product
         Id='*'
-        Name='ScanCodeSyncDesktop'
+        Name='Sync Media Sorter'
         UpgradeCode='11657E42-A062-42D6-B896-7D6BB4700751'
         Manufacturer='Ollie Lynas'
         Language='1033'
@@ -145,6 +145,7 @@
                         Description='Launch ScanCodeSyncDesktop'
                         Target='[#exe0]'
                         WorkingDirectory='APPLICATIONFOLDER'
+                        Icon='ProductICO'
                     />
                     <RemoveFolder
                         Id='RemoveDesktopShortcutFolder'

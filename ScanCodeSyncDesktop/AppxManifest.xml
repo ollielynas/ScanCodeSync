@@ -14,7 +14,7 @@
     />
 
   <Properties>
-    <DisplayName>ScanCodeSync</DisplayName>
+    <DisplayName>Sync Media Sorter</DisplayName>
     <PublisherDisplayName>Ollie Lynas</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
