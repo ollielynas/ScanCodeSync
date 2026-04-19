@@ -2,6 +2,7 @@ use anyhow::{Context, Result, bail};
 use semver::Version;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::path::Path;
 use std::process::Command;
 
 const MANIFEST_URL: &str = "https://sync-home.ollielynas.com/latest.json";
@@ -78,8 +79,7 @@ pub fn download_and_install() -> Result<()> {
         .bytes()
         .context("Failed to read update download")?;
 
-    verify_sha256(&bytes, &asset.signature)
-        .context("Checksum verification failed — update aborted")?;
+    verify_sha256(&bytes, &asset.signature)?;
 
     let ext = if cfg!(target_os = "windows") { ".msi" }
               else if cfg!(target_os = "macos") { ".dmg" }
@@ -130,6 +130,7 @@ fn install_update(path: &str) -> Result<()> {
 
 #[cfg(target_os = "linux")]
 fn install_update(path: &str) -> Result<()> {
+    let path = Path::new(path);
     self_update::Extract::from_source(path)
         .extract_into(&std::env::current_exe()
             .context("Could not determine current exe path")?

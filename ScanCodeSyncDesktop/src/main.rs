@@ -40,12 +40,15 @@ async fn main() {
                 // In a CLI app: print a notice and optionally auto-update
                 if rfd::MessageDialog::new()
                     .set_title("New Version Available")
-                    .set_description("Update available: v{}\n{}\n Would You like to update?")
+                    .set_description(format!("Update available\n{}\n Would You like to update?", notes))
                     .set_buttons(rfd::MessageButtons::YesNo)
                     .show() == MessageDialogResult::Yes
                 {
                     if let Err(e) = updater::download_and_install() {
-                        eprintln!("Update failed: {}", e);
+                        rfd::MessageDialog::new()
+                            .set_title("Update Failed")
+                            .set_description(e.to_string())
+                            .show();
                     }
                 }
             }
@@ -60,13 +63,12 @@ async fn main() {
         }
     });
 
-    let version = env!("CARGO_PKG_VERSION");
 
-    if !cfg!(debug_assertions){
-    rfd::MessageDialog::new().set_title("Beta Version")
-        .set_description(format!("Warning, you are on version \n{}\nThis version is not feature complete.", version))
-        .show();
-    }
+    // if !cfg!(debug_assertions){
+    // rfd::MessageDialog::new().set_title("Beta Version")
+    //     .set_description(format!("Warning, you are on version \n{}\nThis version is not feature complete.", version))
+    //     .show();
+    // }
     let mut state = State::default();
 
     if !ffmpeg_is_installed() {

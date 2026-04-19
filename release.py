@@ -61,7 +61,7 @@ WACK_PATH = r"C:\Program Files (x86)\Windows Kits\10\App Certification Kit\appce
 
 # Base URL where your website serves the release files.
 # The manifest will construct download URLs as: BASE_RELEASE_URL/{version}/{filename}
-BASE_RELEASE_URL = "https://sync-home.ollielynas.com/releases"
+BASE_RELEASE_URL = "https://sync-home.ollielynas.com"
 
 # Maps file extensions to the platform keys used in latest.json.
 # Add extra entries here if you ever ship arm64 Windows or universal macOS builds.
@@ -317,7 +317,7 @@ def run_wack(msix_path: Path, report_dir: Path) -> Path | None:
         )
         return None
 
-    report_path = report_dir / f"WACKReport_{msix_path.stem}.xml"
+    report_path = report_dir / f"WACKReport_{msix_path.stem}"
 
     print(f"🔍 Running Windows App Cert Kit on {msix_path.name} ...")
     print(f"   Report will be saved to: {report_path}")
