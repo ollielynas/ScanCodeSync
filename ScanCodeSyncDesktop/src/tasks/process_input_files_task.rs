@@ -95,11 +95,7 @@ impl Task for ProcessInputFilesTask {
 
             }).filter(|x| x.is_ok()).flat_map(|x| x.unwrap()).collect();
 
-            if (tl_entries).len() == 0 {
 
-                progress.set_item("no entries were found");
-                bail!("no entries");
-            }
             timeline.entries.extend(tl_entries);
 
             // dont forget to remove this after you have finished debugging
