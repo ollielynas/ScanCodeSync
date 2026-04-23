@@ -5,7 +5,7 @@ use ffmpeg_sidecar::{self, command::FfmpegCommand, event::FfmpegEvent};
 use image::GrayImage;
 use rqrr::PreparedImage;
 
-use crate::{command_pool::SharedCommandPool, data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, file_metadata::{get_creation_time_ms, get_device_id}}, dbp, util::FFMPEG_FRMATS};
+use crate::{command_pool::SharedCommandPool, data::{data_entry::{DataValue, DeviceId, DeviceTime, TimelineEntry}, file_metadata::{get_creation_time_ms, get_device_id}, read_audio::get_encoded_time_from_audio}, dbp, util::FFMPEG_FRMATS};
 
 
 fn process_csv_text(text: String, recording_device_id: Option<&DeviceId>) -> Vec<TimelineEntry> {
@@ -105,6 +105,12 @@ fn process_raw_file(path: &PathBuf, command_pool: SharedCommandPool, filetype: S
 
 
     if FFMPEG_FRMATS.contains(&filetype) {
+
+        if let Ok(mut audio_entries) = get_encoded_time_from_audio(path, 0)
+        {
+            entries.append(&mut audio_entries);
+        }
+
         FfmpegCommand::new()
             .input(path.to_str().context("path contained non utf8 chars")?)
             .create_no_window()
@@ -122,9 +128,9 @@ fn process_raw_file(path: &PathBuf, command_pool: SharedCommandPool, filetype: S
         let mut cmd = command_pool.get_magick_command()?;
         let mut output = cmd
             .args([
-                path.to_str().unwrap(),
+                path.to_str().ok_or(anyhow::anyhow!("failed to parse path as string"))?,
                 "-quiet",
-                "-scale", "1024x1024>",
+                "-sample", "1024x1024>",
                 "-colorspace", "Gray",
                 "-depth", "8",
                 "-write", "info:fd:2",

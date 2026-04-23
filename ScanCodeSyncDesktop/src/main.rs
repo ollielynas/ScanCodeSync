@@ -60,7 +60,7 @@ async fn main() {
     let mut state = State::default();
 
 
-    // #[cfg(target_os = "macos")]
+    #[cfg(target_os = "macos")]
     if matches!(prompt_install_brew(), Ok(true)) {
         state.add_task(build_restart_task());
     }
@@ -180,6 +180,9 @@ async fn main() {
         render_state(&mut state);
 
         // Draw things before egui
+
+
+        draw_fps();
 
         egui_macroquad::draw();
 
