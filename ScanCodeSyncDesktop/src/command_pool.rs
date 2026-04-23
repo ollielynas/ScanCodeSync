@@ -139,7 +139,7 @@ impl CommandPool {
 
         return None;
     }
-    pub fn get_magick_command(&mut self, task_id: u64) -> Option<Command> {
+    pub fn get_magick_command(&mut self, _task_id: u64) -> Option<Command> {
 
         // this is not yet supported
 
@@ -155,7 +155,7 @@ impl CommandPool {
 
         return None;
     }
-    pub fn get_ffmpeg_command(&mut self, task_id: u64) -> Option<FfmpegCommand> {
+    pub fn get_ffmpeg_command(&mut self, _task_id: u64) -> Option<FfmpegCommand> {
 
         // ffmpeg is not currently supported
 

@@ -4,7 +4,7 @@ use atomic_progress::Progress;
 use rfd::MessageDialogResult;
 use ffmpeg_sidecar::download::{download_ffmpeg_package, ffmpeg_download_url, unpack_ffmpeg};
 
-use crate::{task::Task, tasks::task_builders::build_restart_task, util::get_project_dir};
+use crate::{task::Task, tasks::task_builders::build_restart_task, util::{add_to_path, get_project_dir}};
 
 pub struct InstallFfmpegTask {
     handle: Option<thread::JoinHandle<anyhow::Result<()>>>,
@@ -201,6 +201,8 @@ pub fn download_and_unpack_ffmpeg(progress: &Progress, dest_dir: PathBuf) -> any
 
     let _ = std::fs::remove_file(archive_path);
 
+    progress.set_item("Adding FFmpeg to PATH...");
+    add_to_path(&dest_dir).context("Failed to add FFmpeg to PATH")?;
     progress.set_item("FFmpeg installed successfully");
     Ok(())
 }

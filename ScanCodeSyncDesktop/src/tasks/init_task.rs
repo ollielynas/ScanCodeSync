@@ -1,7 +1,7 @@
 use std::{fs, path::PathBuf,thread};
 use anyhow::bail;
 use atomic_progress::{Progress, ProgressType};
-use crate::{depopulate_all_into_state_init_values, populate_field, task::Task, tasks::task_builders::build_update_input_files_list_task, util::get_project_dir};
+use crate::{depopulate_all_into_state_init_values, populate_field, task::Task, tasks::task_builders::{build_update_input_files_list_task, build_update_unsorted_files_list_task}, util::get_project_dir};
 pub struct StateInitValues {
     pub input_folder: Box<PathBuf>,
     pub output_folder: Box<PathBuf>,
@@ -87,7 +87,7 @@ impl Task for InitTask {
     }
 
     fn chain_tasks(&self) -> Vec<Box<dyn Task>> {
-        vec![build_update_input_files_list_task()]
+        vec![build_update_input_files_list_task(), build_update_unsorted_files_list_task()]
     }
 
     fn attempt_run(&mut self, state: &mut crate::state::State) -> anyhow::Result<()> {

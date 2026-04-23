@@ -8,7 +8,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::{tasks::task_builders::build_restart_task, util::{prompt_install_brew, window_conf}};
+use crate::{tasks::task_builders::build_restart_task, themes::setup_look, util::{prompt_install_brew, window_conf}};
 use crate::{
     main_ui::render_state,
     state::State,
@@ -29,6 +29,7 @@ pub mod tasks;
 pub mod updater;
 pub mod util;
 pub mod val_hold;
+pub mod themes;
 
 #[macroquad::main(window_conf)]
 async fn main() {
@@ -47,6 +48,7 @@ async fn main() {
         };
 
 
+
         #[cfg(not(target_os = "macos"))]
         {
             rfd::MessageDialog::new()
@@ -56,6 +58,9 @@ async fn main() {
                 .show()
         };
     }));
+
+    setup_look().await;
+
 
     let mut state = State::default();
 
@@ -161,6 +166,9 @@ async fn main() {
 
     let mut time_500ms = Instant::now();
     let mut time_10000ms = Instant::now();
+
+
+
 
     loop {
         clear_background(WHITE);

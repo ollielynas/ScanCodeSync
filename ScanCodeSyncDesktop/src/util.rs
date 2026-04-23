@@ -332,3 +332,121 @@ pub fn prompt_install_brew() -> anyhow::Result<bool> {
 
     Ok(true)
 }
+
+
+
+/// Persistently adds `dir` to the user's PATH on Linux and Windows.
+/// On Linux: appends an export line to ~/.bashrc and ~/.zshrc (if present).
+/// On Windows: appends to the user PATH in the registry (no admin required).
+pub fn add_to_path(dir: &PathBuf) -> anyhow::Result<()> {
+    // Verify the expected binaries are actually there before touching PATH
+    let bins: &[&str] = if cfg!(windows) {
+        &["ffmpeg.exe", "ffplay.exe", "ffprobe.exe"]
+    } else {
+        &["ffmpeg", "ffplay", "ffprobe"]
+    };
+    for bin in bins {
+        let bin_path = dir.join(bin);
+        if !bin_path.exists() {
+            anyhow::bail!("Expected binary not found after unpack: {}", bin_path.display());
+        }
+    }
+
+    let dir_str = dir
+        .to_str()
+        .context("Install path contains non-UTF-8 characters")?;
+
+    #[cfg(target_os = "windows")]
+    {
+        add_to_path_windows(dir_str)?;
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        add_to_path_unix(dir_str)?;
+    }
+
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn add_to_path_windows(dir_str: &str) -> anyhow::Result<()> {
+    use std::process::Command;
+
+    // Read the current user PATH from the registry via powershell (no admin needed)
+    let output = Command::new("powershell")
+        .args([
+            "-NoProfile",
+            "-Command",
+            "[Environment]::GetEnvironmentVariable('PATH', 'User')",
+        ])
+        .output()
+        .context("Failed to read user PATH from registry")?;
+
+    let current_path = String::from_utf8_lossy(&output.stdout);
+    let current_path = current_path.trim();
+
+    // Avoid duplicates
+    if current_path.split(';').any(|p| p.trim() == dir_str) {
+        return Ok(());
+    }
+
+    let new_path = if current_path.is_empty() {
+        dir_str.to_string()
+    } else {
+        format!("{};{}", current_path, dir_str)
+    };
+
+    // Write back to the registry
+    let set_cmd = format!(
+        "[Environment]::SetEnvironmentVariable('PATH', '{}', 'User')",
+        new_path.replace('\'', "''") // escape single quotes for PS
+    );
+    let status = Command::new("powershell")
+        .args(["-NoProfile", "-Command", &set_cmd])
+        .status()
+        .context("Failed to write user PATH to registry")?;
+
+    if !status.success() {
+        anyhow::bail!("PowerShell exited with non-zero status while updating PATH");
+    }
+
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+fn add_to_path_unix(dir_str: &str) -> anyhow::Result<()> {
+    let export_line = format!("\nexport PATH=\"{}:$PATH\"\n", dir_str);
+    let home = std::env::var("HOME").context("$HOME is not set")?;
+
+    // Always patch .bashrc; patch .zshrc only if it already exists
+    let candidates = {
+        let mut v = vec![format!("{}/.bashrc", home)];
+        let zshrc = format!("{}/.zshrc", home);
+        if std::path::Path::new(&zshrc).exists() {
+            v.push(zshrc);
+        }
+        v
+    };
+
+    for rc_path in candidates {
+        // Read existing content; create the file if absent (.bashrc case)
+        let existing = std::fs::read_to_string(&rc_path).unwrap_or_default();
+
+        // Skip if the directory is already exported in this file
+        if existing.contains(dir_str) {
+            continue;
+        }
+
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&rc_path)
+            .with_context(|| format!("Failed to open {} for writing", rc_path))?;
+
+        use std::io::Write;
+        file.write_all(export_line.as_bytes())
+            .with_context(|| format!("Failed to write to {}", rc_path))?;
+    }
+
+    Ok(())
+}

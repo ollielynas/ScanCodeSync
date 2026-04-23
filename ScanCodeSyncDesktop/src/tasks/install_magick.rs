@@ -143,7 +143,7 @@ fn install_candidates() -> Vec<(String, Vec<String>)> {
 
         (
         "cmd".into(),
-        vec!["/C".into(), "winget".into(), "install".into(), "--id".into(), "ImageMagick.ImageMagick".into()],
+        vec!["/C".into(), "winget".into(), "install".into(), "--id".into(), "ImageMagick.ImageMagick".into(), "--accept-package-agreements".into(), " --accept-source-agreements".into()],
         )
     ]
 }
@@ -217,7 +217,7 @@ fn add_magick_to_path(progress: &Progress) {
     progress.set_item("Locating ImageMagick install directory...");
 
     let output = match Command::new("winget")
-        .args(["show", "--id", "ImageMagick.ImageMagick"])
+        .args(["show", "--id", "ImageMagick.ImageMagick", "--accept-package-agreements", " --accept-source-agreements"])
         .output()
     {
         Ok(o) => o,
