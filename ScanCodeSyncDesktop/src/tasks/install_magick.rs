@@ -140,10 +140,9 @@ impl Task for InstallMagickTask {
 #[cfg(target_os = "windows")]
 fn install_candidates() -> Vec<(String, Vec<String>)> {
     vec![
-
         (
         "cmd".into(),
-        vec!["/C".into(), "winget".into(), "install".into(), "--id".into(), "ImageMagick.ImageMagick".into(), "--accept-package-agreements".into(), " --accept-source-agreements".into()],
+        vec!["/C".into(), "winget".into(), "install".into(), "--id".into(), "ImageMagick.ImageMagick".into(), "--silent".into()],
         )
     ]
 }
@@ -189,18 +188,27 @@ pub fn install_magick(progress: &Progress) -> anyhow::Result<()> {
         };
 
         let stdout = child.stdout.take().unwrap();
+        let mut already_installed = false;
         for line in BufReader::new(stdout).lines() {
-            progress.set_item(line.unwrap_or_default());
+            dbp!("{:?}",&line);
+            if let Ok(line) = line {
+                if line == "No available upgrade found.".to_string() {
+                    already_installed = true;
+                }
+                progress.set_item(line);
+            }
         }
 
         let status = child.wait()
             .with_context(|| format!("Failed to wait on {program}"))?;
 
-        if status.success() {
+        if status.success() || already_installed {
             progress.set_item("ImageMagick installed successfully");
             #[cfg(target_os = "windows")]
             add_magick_to_path(progress);
             return Ok(());
+        }else {
+
         }
     }
 
@@ -217,7 +225,7 @@ fn add_magick_to_path(progress: &Progress) {
     progress.set_item("Locating ImageMagick install directory...");
 
     let output = match Command::new("winget")
-        .args(["show", "--id", "ImageMagick.ImageMagick", "--accept-package-agreements", " --accept-source-agreements"])
+        .args(["show", "--id", "ImageMagick.ImageMagick"])
         .output()
     {
         Ok(o) => o,

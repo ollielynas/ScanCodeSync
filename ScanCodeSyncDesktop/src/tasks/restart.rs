@@ -45,20 +45,42 @@ impl Task for RestartTask {
         self.handle = Some(thread::spawn(move || {
             progress.set_item("shutting down...");
             let current_exe = std::env::current_exe().expect("Failed to get current exe path");
-            Command::new(current_exe)
+
+
+            // macos
+            #[cfg(target_os = "macos")]
+            Command::new(&current_exe)
                 .args(std::env::args().skip(1))
                 .spawn()
                 .expect("Failed to spawn new process");
 
-            exit(0); // Exit current process
+            // linux
+            #[cfg(target_os = "linux")]
+            Command::new("bash")
+                .arg("-l") // "Login" flag: tells bash to reload the user's full profile/PATH
+                .arg("-c")
+                .arg(format!("{} {}", current_exe.display(), std::env::args().skip(1).collect::<Vec<_>>().join(" ")))
+                .spawn()
+                .expect("Failed to restart");
 
+            // windows
+            #[cfg(target_os = "windows")]
+            let restart_cmd = format!("Start-Process '{}'", current_exe.display());
+
+            #[cfg(target_os = "windows")]
+            Command::new("powershell")
+                .args(["-Command", &restart_cmd])
+                .spawn()
+                .expect("Failed to restart");
+
+            exit(0);
         }));
         return Ok(());
 
     }
 
     fn get_name(&self) -> &str {
-        "Install ExifTool"
+        "Restart"
     }
 
     fn silent(&self) -> bool {
@@ -102,113 +124,5 @@ impl Task for RestartTask {
 
     fn chain_tasks(&self) -> Vec<Box<dyn Task>> {
         vec![]
-    }
-}
-
-#[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-const EXIFTOOL_BYTES: &[u8] = include_bytes!("../vendor/ExifTool_install_13.54_64.exe");
-#[cfg(all(target_os = "windows", target_arch = "x86"))]
-const EXIFTOOL_BYTES: &[u8] = include_bytes!("../vendor/ExifTool_install_13.54_32.exe");
-
-#[cfg(target_os = "windows")]
-pub fn install_exiftool(progress: &Progress) -> anyhow::Result<()> {
-    use std::io::{BufRead, BufReader};
-    use std::process::{Command, Stdio};
-
-    use anyhow::Context;
-
-    // Write the installer to a temp file
-    let temp_dir = std::env::temp_dir();
-    let installer_path = temp_dir.join("exiftool_installer.exe");
-
-    progress.set_item("Extracting installer...");
-    std::fs::write(&installer_path, EXIFTOOL_BYTES)
-        .context("Failed to write ExifTool installer")?;
-
-    // Run the installer silently
-    progress.set_item("Running installer...");
-    let mut child = Command::new(&installer_path)
-        .stdout(Stdio::piped())
-        .spawn()
-        .context("Failed to execute ExifTool installer")?;
-
-    let stdout = child.stdout.take().unwrap();
-    for line in BufReader::new(stdout).lines() {
-        progress.set_item(line.unwrap_or_default());
-    }
-
-    let status = child.wait().context("Failed to wait on installer")?;
-
-    // Clean up temp installer
-    let _ = std::fs::remove_file(&installer_path);
-
-    if status.success() {
-        progress.set_item("ExifTool installed successfully");
-        Ok(())
-    } else {
-        bail!("ExifTool installer failed")
-    }
-}
-#[cfg(target_os = "linux")]
-pub fn install_exiftool(progress: &Progress) -> anyhow::Result<()> {
-    use std::io::{BufRead, BufReader};
-    use std::process::{Command, Stdio};
-
-    let candidates = [
-        ("apt-get", vec!["install", "-y", "libimage-exiftool-perl"]), // Debian/Ubuntu/Mint
-        ("dnf",     vec!["install", "-y", "perl-Image-ExifTool"]),    // Fedora/RHEL
-        ("pacman",  vec!["-S", "--noconfirm", "perl-image-exiftool"]), // Arch
-        ("zypper",  vec!["install", "-y", "perl-Image-ExifTool"]),    // openSUSE
-    ];
-
-    for (pm, args) in &candidates {
-        if Command::new("which").arg(pm).output().map(|o| o.status.success()).unwrap_or(false) {
-            progress.set_item(format!("trying {pm}..."));
-
-            let mut child = Command::new("sudo")
-                .arg(pm)
-                .args(args)
-                .stdout(Stdio::piped())
-                .spawn()
-                .with_context(|| format!("Failed to execute {pm}"))?;
-
-            let stdout = child.stdout.take().unwrap();
-            for line in BufReader::new(stdout).lines() {
-                progress.set_item(line.unwrap_or_default());
-            }
-
-            let status = child.wait().with_context(|| format!("Failed to wait on {pm}"))?;
-            if status.success() {
-                return Ok(());
-            }
-
-            return Err(anyhow::anyhow!("{pm} failed to install ExifTool"));
-        }
-    }
-
-    bail!("No supported package manager found. Please install ExifTool manually: https://exiftool.org/install.html")
-}
-
-#[cfg(target_os = "macos")]
-pub fn install_exiftool(progress: &Progress) -> anyhow::Result<()> {
-    use std::io::{BufRead, BufReader};
-    use std::process::{Command, Stdio};
-
-    let mut child = Command::new("brew")
-        .args(["install", "exiftool"])
-        .stdout(Stdio::piped())
-        .spawn()
-        .context("Failed to execute brew command")?;
-
-    let stdout = child.stdout.take().unwrap();
-    for line in BufReader::new(stdout).lines() {
-        progress.set_item(line.unwrap_or_default());
-    }
-
-    let status = child.wait().context("Failed to wait on brew")?;
-    if status.success() {
-        Ok(())
-    } else {
-        Err(anyhow::anyhow!("Homebrew failed to install ExifTool"))
     }
 }

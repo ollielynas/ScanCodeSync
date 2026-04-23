@@ -55,6 +55,7 @@ pub fn user_accessible_tasks() -> Vec<Box<dyn Task>> {
         build_change_output_folder_task(),
         build_install_exiftools_task(),
         build_install_magick_task(),
+        build_install_ffmpeg_task(),
         build_update_unsorted_files_list_task(),
         build_reset_data_task(),
     ];

@@ -104,7 +104,7 @@ pub fn render_state(state: &mut State) {
                     state.timeline.to_string() != "0 timeline entries".to_string()
 
                     {
-                        ui.label(RichText::new("<- step 4: after all project files have been imported processed, sort them").background_color(Color32::LIGHT_YELLOW));
+                        ui.label(RichText::new("<- step 4: after all project files have been imported and processed, sort them").background_color(Color32::LIGHT_YELLOW));
                 }
                 });
 
@@ -128,15 +128,16 @@ pub fn render_state(state: &mut State) {
                     ui.strong("State");
                    if state.show_detailed_info { ui.strong("Task ID");}
                     ui.end_row();
-
-                ui.label("input folder");
-                if ui.link(truncate_front(state.input_folder.to_string(), 30)).clicked() {
-                    let _ = open::that(state.input_folder.to_string());
-                }
                 if state.show_detailed_info {
+                ui.label("input folder");
+                    if ui.link(truncate_front(state.input_folder.to_string(), 30)).clicked() {
+                        let _ = open::that(state.input_folder.to_string());
+                    }
+
+
                 ui.label(state.input_folder.used_by_string());
-                }
                 ui.end_row();
+                }
 
                 if state.show_detailed_info {
                     ui.label("processing folder");
@@ -183,9 +184,9 @@ pub fn render_state(state: &mut State) {
         egui::CentralPanel::default()
             .show(egui_ctx, |ui| {
                 egui::Grid::new("tasks").show(ui, |ui| {
-                    ui.label("Task");
-                    ui.label("Progress");
-                    ui.label("Elapsed");
+                    ui.strong("Task");
+                    ui.strong("Progress");
+                    ui.strong("Elapsed");
                     if state.show_detailed_info {ui.label("State");}
                     if state.show_detailed_info {ui.label("ID");}
                     ui.end_row();
