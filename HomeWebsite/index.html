@@ -105,7 +105,7 @@
                             .slice(-1)[0];
                         download_button_text = `Download v${data.version} for macOS x86_64`;
                         message =
-                            "brew install --cask https://sync-home.ollielynas.com/install.rb";
+                            'brew install --cask "https://sync-home.ollielynas.com/install.rb"';
                     } else if (
                         /Linux/i.test(userAgent) &&
                         data.platforms["linux-x86_64"]
