@@ -117,7 +117,7 @@
                     document.getElementById("download-link").href = downloadUrl;
                     document.getElementById("download-button").innerText =
                         download_button_text;
-                    document.getElementById("platform-info").innerHtml =
+                    document.getElementById("platform-info").innerHTML =
                         message;
                 })
                 .catch((error) => console.error("Request failed", error));
