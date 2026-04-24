@@ -67,7 +67,7 @@ BASE_RELEASE_URL = "https://sync-home.ollielynas.com"
 # Add extra entries here if you ever ship arm64 Windows or universal macOS builds.
 EXTENSION_TO_PLATFORM = {
     ".msi": "windows-x86_64",
-    ".dmg": "darwin-x86_64",
+    ".dmg": "macos",
     ".flatpak": "linux-x86_64",
 }
 

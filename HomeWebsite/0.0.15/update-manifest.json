@@ -1,11 +1,11 @@
 {
   "version": "0.0.15",
   "notes": "Release v0.0.15",
-  "pub_date": "2026-04-24T03:30:33Z",
+  "pub_date": "2026-04-24T10:08:08Z",
   "platforms": {
-    "darwin-x86_64": {
+    "macos": {
       "url": "https://sync-home.ollielynas.com/0.0.15/ScanCodeSync-0.0.15.dmg",
-      "signature": "sha256:84c977932874f43e82f0f2780f5633a0e22a45d5c01856bc27c766b506ab0115"
+      "signature": "sha256:dfd9d97e1212f283542907203628eae3e9e43ccf65d3976b6daed5e3737494fb"
     },
     "linux-x86_64": {
       "url": "https://sync-home.ollielynas.com/0.0.15/ScanCodeSync-0.0.15.flatpak",
