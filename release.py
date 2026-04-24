@@ -450,6 +450,14 @@ def main():
             toml.dump(data, f)
         print(f"✅ Updated Cargo.toml to v{new_version}")
 
+    with open(CARGO_TOML_PATH, "r") as f:
+        content = f.read()
+
+    new_content = content.replace("\\\\\\", "\\")
+
+    with open(CARGO_TOML_PATH, "w") as f:
+        f.write(new_content)
+
     msix_file = None
     if build_windows():
         # 3. Build MSI
