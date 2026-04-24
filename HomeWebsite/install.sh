@@ -112,7 +112,7 @@ case "$FILENAME" in
   *.dmg)
     # Match the line containing the /Volumes/ mount path — works for both
     # HFS+ and APFS DMGs regardless of partition type string
-    MOUNT_POINT="$(hdiutil attach -nobrowse -quiet "$DOWNLOAD_PATH" \
+    MOUNT_POINT="$(hdiutil attach -nobrowse "$DOWNLOAD_PATH" \
       | grep '/Volumes/' | awk '{print substr($0, index($0,"/Volumes/"))}' || true)"
     if [ -z "$MOUNT_POINT" ]; then
       echo "ERROR: Failed to determine DMG mount point"
