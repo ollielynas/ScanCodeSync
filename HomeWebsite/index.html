@@ -96,7 +96,7 @@
                         message = "";
                     } else if (
                         (navigator.userAgentData?.platform === "macOS" ||
-                            /Mac/i.test(userAgent)) &&
+                            /Mac/i.test(navigator.userAgent)) &&
                         data.platforms["macos"]
                     ) {
                         downloadUrl = data.platforms["macos"].url;
