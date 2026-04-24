@@ -97,14 +97,15 @@
                     } else if (
                         (navigator.userAgentData?.platform === "macOS" ||
                             /Mac/i.test(userAgent)) &&
-                        data.platforms["macos-x86_64"]
+                        data.platforms["macos"]
                     ) {
-                        downloadUrl = data.platforms["macos-x86_64"].url;
-                        message = data.platforms["macos-x86_64"].url
+                        downloadUrl = data.platforms["macos"].url;
+                        message = data.platforms["macos"].url
                             .split("/")
                             .slice(-1)[0];
                         download_button_text = `Download v${data.version} for macOS x86_64`;
-                        message = "";
+                        message =
+                            "brew install --cask https://sync-home.ollielynas.com/install.rb";
                     } else if (
                         /Linux/i.test(userAgent) &&
                         data.platforms["linux-x86_64"]

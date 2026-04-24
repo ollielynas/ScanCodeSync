@@ -1,6 +1,12 @@
 ## Scan Code Sync
 
 
+Install with brew:
+
+`brew install --cask https://sync-home.ollielynas.com/install.rb`
+install brew from: [https://brew.sh/]
+
+
 The purpose  of this standard is to create an accurate timecode and metadata storage system that can be recorded into video and audio mediums. This has the advantage of syncing the internal clocks of many different devices, such as professional and amateur cameras as well as stand alone microphone recorders. The goal is to be able to take a photo or short audio clip from one device onto another (e.g a photo of an android device on a dlsr camera) and then calculate the drift of the clock as well as the offset. These recording became data points of the relative times of the two devices. Using these offsets the total offset of any given device from a master clock can be estimated.
 
 there are 3 components to this solution.
