@@ -1,4 +1,4 @@
-use std::{process::Command, sync::Arc, time::{Duration, Instant}};
+use std::{env, process::Command, sync::Arc, time::{Duration, Instant}};
 
 use egui_macroquad::egui::{self, Ui, ahash::{HashMap, HashSet}, mutex::Mutex};
 use exiftool::ExifTool;
@@ -312,6 +312,21 @@ impl SharedCommandPoolUiState {
             exif_tools: HashMap::default(),
             ffmpeg_tools: HashMap::default(),
             magick_tools: HashMap::default(),
+        }
+    }
+}
+
+
+/// macos only
+pub fn setup_path() {
+    if let Ok(output) = std::process::Command::new("sh")
+        .args(["-lc", "echo $PATH"])  // -l = login shell, gets full PATH
+        .output()
+    {
+        if let Ok(path) = String::from_utf8(output.stdout) {
+
+            // because path is shared between threads
+            unsafe { env::set_var("PATH", path.trim()) };
         }
     }
 }

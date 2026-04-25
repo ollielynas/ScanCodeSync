@@ -292,11 +292,13 @@ pub fn epoch_ms_to_date(epoch_ms: u128) -> String {
 /// return true if brew was installed and the program needs to be restarted
 pub fn prompt_install_brew() -> anyhow::Result<bool> {
     // Check if brew is already installed
-    if std::process::Command::new("brew")
-        .arg("--version")
+    let already_installed = std::process::Command::new("sh")
+        .args(["-c", "brew --version"])
         .output()
-        .is_ok()
-    {
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    if already_installed {
         return Ok(false);
     }
 
