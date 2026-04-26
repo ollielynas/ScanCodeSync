@@ -65,7 +65,7 @@ async fn main() {
     let mut state = State::default();
 
     #[cfg(target_os = "macos")]
-    setup_path();
+    command_pool::setup_path();
 
     #[cfg(target_os = "macos")]
     if matches!(prompt_install_brew(), Ok(true)) {
