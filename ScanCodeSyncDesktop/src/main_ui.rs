@@ -50,7 +50,7 @@ pub fn render_state(state: &mut State) {
                     state.timeline.to_string() != "0 timeline entries".to_string()
 
                     {
-                        ui.label(RichText::new("<- step 1: clear data from previous project").background_color(Color32::LIGHT_YELLOW));
+                        ui.label(RichText::new("<- step 0: clear data from previous project").background_color(Color32::LIGHT_YELLOW));
                 }
                 });
 
@@ -64,7 +64,7 @@ pub fn render_state(state: &mut State) {
                         state.timeline.to_string() != "0 timeline entries".to_string())
 
                         {
-                            ui.label(RichText::new("<- step 2: import new files from sd cards").background_color(Color32::LIGHT_YELLOW));
+                            ui.label(RichText::new("<- step 1: import new files from sd cards").background_color(Color32::LIGHT_YELLOW));
                     }
                 });
                 ui.horizontal(|ui| {
@@ -78,7 +78,7 @@ pub fn render_state(state: &mut State) {
 
 
                         {
-                            ui.label(RichText::new("<- step 3: start processing imported files").background_color(Color32::LIGHT_YELLOW));
+                            ui.label(RichText::new("<- step 2: start processing imported files").background_color(Color32::LIGHT_YELLOW));
                     }
                 });
                 ui.horizontal(|ui| {
@@ -104,7 +104,7 @@ pub fn render_state(state: &mut State) {
                     state.timeline.to_string() != "0 timeline entries".to_string()
 
                     {
-                        ui.label(RichText::new("<- step 4: after all project files have been imported and processed, sort them").background_color(Color32::LIGHT_YELLOW));
+                        ui.label(RichText::new("<- step 3: after all project files have been imported and processed, sort them").background_color(Color32::LIGHT_YELLOW));
                 }
                 });
 

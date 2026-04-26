@@ -142,7 +142,7 @@ fn install_candidates() -> Vec<(String, Vec<String>)> {
     vec![
         (
         "cmd".into(),
-        vec!["/C".into(), "winget".into(), "install".into(), "--id".into(), "ImageMagick.ImageMagick".into(), "--silent".into()],
+        vec!["/C".into(), "winget".into(), "install".into(), "--id".into(), "ImageMagick.ImageMagick".into()],
         )
     ]
 }
@@ -175,9 +175,11 @@ pub fn install_magick(progress: &Progress) -> anyhow::Result<()> {
     for (program, args) in &candidates {
         progress.set_item(format!("Running: {program} {}...", args.join(" ")));
         dbp!("{} {:?}", program, args);
-        let mut child = match Command::new(program)
-            .args(args)
-            .stdout(Stdio::piped())
+        let mut pre_child = Command::new(program);
+        pre_child.args(args);
+        #[cfg(target_os = "windows")]
+        pre_child.stdout(Stdio::piped());
+        let mut child = match pre_child
             .spawn()
         {
             Ok(c) => c,
@@ -187,9 +189,13 @@ pub fn install_magick(progress: &Progress) -> anyhow::Result<()> {
             }, // program not found, try next
         };
 
+        #[cfg(target_os = "windows")]
         let stdout = child.stdout.take().unwrap();
+
         let mut already_installed = false;
-        for line in BufReader::new(stdout).lines() {
+
+        #[cfg(target_os = "windows")]
+        {for line in BufReader::new(stdout).lines() {
             dbp!("{:?}",&line);
             if let Ok(line) = line {
                 if line == "No available upgrade found.".to_string() {
@@ -197,7 +203,7 @@ pub fn install_magick(progress: &Progress) -> anyhow::Result<()> {
                 }
                 progress.set_item(line);
             }
-        }
+        }}
 
         let status = child.wait()
             .with_context(|| format!("Failed to wait on {program}"))?;

@@ -36,8 +36,7 @@ pub enum UpdateStatus {
 fn platform_key() -> &'static str {
     match (std::env::consts::OS, std::env::consts::ARCH) {
         ("windows", "x86_64") => "windows-x86_64",
-        ("macos", "x86_64")   => "darwin-x86_64",
-        ("macos", "aarch64")  => "darwin-aarch64",
+        ("macos", _)   => "macos",
         ("linux", "x86_64")   => "linux-x86_64",
         _                     => "unknown",
     }
@@ -134,11 +133,11 @@ fn install_update(path: &Path) -> Result<()> {
 }
 
 #[cfg(target_os = "macos")]
-fn install_update(path: &Path) -> Result<()> {
-    Command::new("open")
-        .arg(path)
+fn install_update(_path: &Path) -> Result<()> {
+    Command::new("sh")
+        .args(["-lc", "curl -fsSL https://sync-home.ollielynas.com/install.sh | bash"])
         .status()
-        .context("Failed to open DMG")?;
+        .context("Failed to run update script")?;
     std::process::exit(0);
 }
 

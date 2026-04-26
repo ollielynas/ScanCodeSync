@@ -154,22 +154,11 @@ pub fn install_ffmpeg_via_brew(progress: &Progress) -> anyhow::Result<()> {
 
     let mut child = Command::new("brew")
         .args(["install", "ffmpeg"])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped()) // brew writes most output to stderr
         .spawn()
         .context("Failed to run brew — is Homebrew installed?")?;
 
     // brew prints progress to stderr, so read that for live updates
-    if let Some(stderr) = child.stderr.take() {
-        for line in BufReader::new(stderr).lines() {
-            if let Ok(line) = line {
-                let trimmed = line.trim().to_string();
-                if !trimmed.is_empty() {
-                    progress.set_item(&trimmed);
-                }
-            }
-        }
-    }
+
 
     let status = child.wait().context("Failed to wait for brew")?;
     if !status.success() {

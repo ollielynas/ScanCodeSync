@@ -226,14 +226,8 @@ pub fn install_exiftool(progress: &Progress) -> anyhow::Result<()> {
 
     let mut child = Command::new("brew")
         .args(["install", "exiftool"])
-        .stdout(Stdio::piped())
         .spawn()
         .context("Failed to execute brew command")?;
-
-    let stdout = child.stdout.take().unwrap();
-    for line in BufReader::new(stdout).lines() {
-        progress.set_item(line.unwrap_or_default());
-    }
 
     let status = child.wait().context("Failed to wait on brew")?;
     if status.success() {

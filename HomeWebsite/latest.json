@@ -1,19 +1,19 @@
 {
-  "version": "0.0.17",
-  "notes": "Release v0.0.17",
-  "pub_date": "2026-04-26T04:33:27Z",
+  "version": "0.0.18",
+  "notes": "Release v0.0.18",
+  "pub_date": "2026-04-26T05:10:58Z",
   "platforms": {
     "macos": {
-      "url": "https://sync-home.ollielynas.com/0.0.17/ScanCodeSync-0.0.17.dmg",
-      "signature": "sha256:b797238b6f00c769048cf66ac39cf4300b17ac522eeb3971cf9e2cb580a70201"
+      "url": "https://sync-home.ollielynas.com/0.0.18/ScanCodeSync-0.0.18.dmg",
+      "signature": "sha256:94630cf37988bdba9480aa200f07d945430e229691e70fe1b0594d97876f6ad9"
     },
     "linux-x86_64": {
-      "url": "https://sync-home.ollielynas.com/0.0.17/ScanCodeSync-0.0.17.flatpak",
-      "signature": "sha256:83099679d6a0932f4eebc9d796986d44cc8c2cbd803bffeccef05efef849a1a0"
+      "url": "https://sync-home.ollielynas.com/0.0.18/ScanCodeSync-0.0.18.flatpak",
+      "signature": "sha256:949bc3e4eb73fbe9b8f03f8d16b7da6bf6b654b9e164f5b4f0699cc9f09ad0e6"
     },
     "windows-x86_64": {
-      "url": "https://sync-home.ollielynas.com/0.0.17/ScanCodeSyncDesktop-0.0.17-x86_64.msi",
-      "signature": "sha256:d190502fbc663a285a47f3295275e82e57bbdcbc342f18aec0cadbdf31532811"
+      "url": "https://sync-home.ollielynas.com/0.0.18/ScanCodeSyncDesktop-0.0.18-x86_64.msi",
+      "signature": "sha256:80725f57be554787e88f86426f6fd6388fb64d99c55f483e2ad3d026114e1d70"
     }
   }
 }
