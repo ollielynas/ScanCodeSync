@@ -145,29 +145,33 @@ impl Task for InstallFfmpegTask {
     }
 }
 
-#[cfg(target_os = "macos")]
+// #[cfg(target_os = "macos")]
 pub fn install_ffmpeg_via_brew(progress: &Progress) -> anyhow::Result<()> {
-    use std::io::{BufRead, BufReader};
-    use std::process::{Command, Stdio};
-
     progress.set_item("Installing FFmpeg via Homebrew...");
 
-    let mut child = Command::new("brew")
-        .args(["install", "ffmpeg"])
-        .spawn()
-        .context("Failed to run brew — is Homebrew installed?")?;
+    let sentinel = "/tmp/ffmpeg_install_done";
+    let script = format!(r#"tell application "Terminal"
+        activate
+        do script "brew install ffmpeg && touch {sentinel} && exit"
+    end tell"#);
 
-    // brew prints progress to stderr, so read that for live updates
+    std::process::Command::new("osascript")
+        .arg("-e")
+        .arg(&script)
+        .status()
+        .context("Failed to open Terminal")?;
 
-
-    let status = child.wait().context("Failed to wait for brew")?;
-    if !status.success() {
-        bail!("brew install ffmpeg failed with status: {status}");
+    while !std::path::Path::new(sentinel).exists() {
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        progress.set_item("Waiting for FFmpeg install to complete...");
     }
 
+    std::fs::remove_file(sentinel)?;
     progress.set_item("FFmpeg installed successfully");
     Ok(())
 }
+
+
 /// The core logic using ffmpeg-sidecar's manual download methods (non-macOS)
 pub fn download_and_unpack_ffmpeg(progress: &Progress, dest_dir: PathBuf) -> anyhow::Result<()> {
     progress.set_item("Locating FFmpeg release...");

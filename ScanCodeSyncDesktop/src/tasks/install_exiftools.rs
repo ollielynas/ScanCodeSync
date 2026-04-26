@@ -220,19 +220,25 @@ pub fn install_exiftool(progress: &Progress) -> anyhow::Result<()> {
 
 #[cfg(target_os = "macos")]
 pub fn install_exiftool(progress: &Progress) -> anyhow::Result<()> {
-    use std::io::{BufRead, BufReader};
-    use std::process::{Command, Stdio};
-    use anyhow::Context;
+    progress.set_item("Installing ExifTool via Homebrew...");
 
-    let mut child = Command::new("brew")
-        .args(["install", "exiftool"])
-        .spawn()
-        .context("Failed to execute brew command")?;
+    let sentinel = "/tmp/exiftool_install_done";
+    let script = format!(r#"tell application "Terminal"
+        activate
+        do script "brew install exiftool && touch {sentinel} && exit"
+    end tell"#);
 
-    let status = child.wait().context("Failed to wait on brew")?;
-    if status.success() {
-        Ok(())
-    } else {
-        Err(anyhow::anyhow!("Homebrew failed to install ExifTool"))
+    std::process::Command::new("osascript")
+        .arg("-e")
+        .arg(&script)
+        .status()?;
+
+    while !std::path::Path::new(sentinel).exists() {
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        progress.set_item("Waiting for ExifTool install to complete...");
     }
+
+    std::fs::remove_file(sentinel)?;
+    progress.set_item("ExifTool installed successfully");
+    Ok(())
 }

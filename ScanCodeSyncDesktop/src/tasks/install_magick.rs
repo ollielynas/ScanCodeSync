@@ -157,15 +157,34 @@ fn install_candidates() -> Vec<(String, Vec<String>)> {
     ]
 }
 
+
+
 #[cfg(target_os = "macos")]
-fn install_candidates() -> Vec<(String, Vec<String>)> {
-    vec![(
-        "brew".into(),
-        vec!["install".into(), "imagemagick".into()],
-    )]
+pub fn install_magick(progress: &Progress) -> anyhow::Result<()> {
+    progress.set_item("Installing ImageMagick via Homebrew...");
+
+    let sentinel = "/tmp/imagemagick_install_done";
+    let script = format!(r#"tell application "Terminal"
+        activate
+        do script "brew install imagemagick && touch {sentinel} && exit"
+    end tell"#);
+
+    std::process::Command::new("osascript")
+        .arg("-e")
+        .arg(&script)
+        .status()?;
+
+    while !std::path::Path::new(sentinel).exists() {
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        progress.set_item("Waiting for ImageMagick install to complete...");
+    }
+
+    std::fs::remove_file(sentinel)?;
+    progress.set_item("ImageMagick installed successfully");
+    Ok(())
 }
 
-
+#[cfg(not(target_os = "macos"))]
 pub fn install_magick(progress: &Progress) -> anyhow::Result<()> {
     use std::io::{BufRead, BufReader};
     use std::process::{Command, Stdio};
@@ -175,18 +194,18 @@ pub fn install_magick(progress: &Progress) -> anyhow::Result<()> {
     for (program, args) in &candidates {
         progress.set_item(format!("Running: {program} {}...", args.join(" ")));
         dbp!("{} {:?}", program, args);
+
         let mut pre_child = Command::new(program);
         pre_child.args(args);
         #[cfg(target_os = "windows")]
         pre_child.stdout(Stdio::piped());
-        let mut child = match pre_child
-            .spawn()
-        {
+
+        let mut child = match pre_child.spawn() {
             Ok(c) => c,
-            Err(a) => {
-                dbg!("{}:?", a);
-                continue
-            }, // program not found, try next
+            Err(e) => {
+                eprintln!("Failed to spawn '{}': {:?}", program, e);
+                continue;
+            }
         };
 
         #[cfg(target_os = "windows")]
@@ -195,15 +214,13 @@ pub fn install_magick(progress: &Progress) -> anyhow::Result<()> {
         let mut already_installed = false;
 
         #[cfg(target_os = "windows")]
-        {for line in BufReader::new(stdout).lines() {
-            dbp!("{:?}",&line);
-            if let Ok(line) = line {
-                if line == "No available upgrade found.".to_string() {
-                    already_installed = true;
-                }
-                progress.set_item(line);
+        for line in BufReader::new(stdout).lines().flatten() {
+            dbp!("{:?}", &line);
+            if line == "No available upgrade found." {
+                already_installed = true;
             }
-        }}
+            progress.set_item(&line);
+        }
 
         let status = child.wait()
             .with_context(|| format!("Failed to wait on {program}"))?;
@@ -213,8 +230,6 @@ pub fn install_magick(progress: &Progress) -> anyhow::Result<()> {
             #[cfg(target_os = "windows")]
             add_magick_to_path(progress);
             return Ok(());
-        }else {
-
         }
     }
 
