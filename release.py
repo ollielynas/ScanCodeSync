@@ -537,12 +537,22 @@ def main():
         moved_files.append(file.name)
         print(f"  -> Moved: {file.name}")
 
-    if msix_file and msix_file.exists():
-        shutil.copy2(msix_file, dest_path / msix_file.name)
-        moved_files.append(msix_file.name)
-        print(f"  -> Moved: {msix_file.name}")
-        print(f"\n💡 Upload the .msix to Partner Center: https://partner.microsoft.com")
+    # After the build_windows() block, replace the msix copy section with:
 
+    msix_candidates = [
+        Path("msix_staging") / f"ScanCodeSync_{new_version}.msix",
+    ]
+
+    if msix_file and msix_file.exists():
+        msix_to_copy = msix_file
+    else:
+        msix_to_copy = next((p for p in msix_candidates if p.exists()), None)
+
+    if msix_to_copy:
+        shutil.copy2(msix_to_copy, dest_path / msix_to_copy.name)
+        moved_files.append(msix_to_copy.name)
+        print(f"  -> Moved: {msix_to_copy.name}")
+        print(f"\n💡 Upload the .msix to Partner Center: https://partner.microsoft.com")
     # Run WACK on whichever .msix ended up in the version folder.
     # This works even if makeappx was skipped, as long as an .msix is present.
     msix_in_dest = list(dest_path.glob("*.msix"))
