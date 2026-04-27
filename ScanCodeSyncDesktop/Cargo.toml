@@ -1,6 +1,6 @@
 [package]
 name = "ScanCodeSyncDesktop"
-version = "0.0.21"
+version = "0.0.22"
 edition = "2024"
 license = "GPL-3.0"
 authors = [ "Ollie Lynas <sync@ollielynas.com>",]
@@ -47,9 +47,6 @@ features = [ "egui31",]
 [dependencies.serde]
 version = "1.0"
 features = [ "derive",]
-
-[target.x86_64-pc-windows-msvc]
-rustflags = [ "-C", "target-feature=+crt-static",]
 
 [package.metadata.wix]
 product-icon = "src/favicon.ico"
