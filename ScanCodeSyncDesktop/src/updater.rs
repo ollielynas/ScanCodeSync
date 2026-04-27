@@ -66,7 +66,16 @@ pub fn check_for_update() -> Result<UpdateStatus> {
         notes: manifest.notes,
     })
 }
+#[cfg(target_os = "macos")]
+pub fn download_and_install() -> Result<()> {
+    Command::new("sh")
+        .args(["-lc", "sleep 2 && curl -fsSL https://sync-home.ollielynas.com/install.sh | bash"])
+        .spawn()
+        .context("Failed to run update script")?;
+    std::process::exit(0);
+}
 
+#[cfg(not(target_os = "macos"))]
 pub fn download_and_install() -> Result<()> {
     let manifest: Manifest = reqwest::blocking::get(MANIFEST_URL)
         .context("Failed to fetch update manifest")?
@@ -75,7 +84,7 @@ pub fn download_and_install() -> Result<()> {
 
     let asset = match manifest.platforms.get(platform_key()) {
         Some(a) => a,
-        None => return Ok(()), // No update for this platform — silently skip
+        None => return Ok(()),
     };
 
     let bytes = reqwest::blocking::get(&asset.url)
@@ -85,9 +94,7 @@ pub fn download_and_install() -> Result<()> {
     dbp!("downloaded from {}", asset.url);
     verify_sha256(&bytes, &asset.signature)?;
 
-    let ext = if cfg!(target_os = "windows") { ".msi" }
-              else if cfg!(target_os = "macos") { ".dmg" }
-              else { ".tar.gz" };
+    let ext = if cfg!(target_os = "windows") { ".msi" } else { ".tar.gz" };
 
     let mut tmp = tempfile::Builder::new()
         .suffix(ext)
@@ -100,8 +107,8 @@ pub fn download_and_install() -> Result<()> {
     let p_path = dir.cache_dir().join(format!("update{ext}"));
     let tmp_path = tmp.into_temp_path();
     tmp_path.persist(&p_path)?;
+
     install_update(&p_path)?;
-    // let _ = std::fs::remove_file(p_path);
     Ok(())
 }
 
@@ -132,14 +139,7 @@ fn install_update(path: &Path) -> Result<()> {
     std::process::exit(0);
 }
 
-#[cfg(target_os = "macos")]
-fn install_update(_path: &Path) -> Result<()> {
-    Command::new("sh")
-        .args(["-lc", "curl -fsSL https://sync-home.ollielynas.com/install.sh | bash"])
-        .status()
-        .context("Failed to run update script")?;
-    std::process::exit(0);
-}
+
 
 #[cfg(target_os = "linux")]
 fn install_update(path: &Path) -> Result<()> {

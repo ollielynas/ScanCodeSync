@@ -197,8 +197,9 @@ pub fn install_magick(progress: &Progress) -> anyhow::Result<()> {
 
         let mut pre_child = Command::new(program);
         pre_child.args(args);
+
         #[cfg(target_os = "windows")]
-        pre_child.stdout(Stdio::piped());
+        // pre_child.stdout(Stdio::piped());
 
         let mut child = match pre_child.spawn() {
             Ok(c) => c,
@@ -209,18 +210,18 @@ pub fn install_magick(progress: &Progress) -> anyhow::Result<()> {
         };
 
         #[cfg(target_os = "windows")]
-        let stdout = child.stdout.take().unwrap();
+        // let stdout = child.stdout.take().unwrap();
 
         let mut already_installed = false;
 
-        #[cfg(target_os = "windows")]
-        for line in BufReader::new(stdout).lines().flatten() {
-            dbp!("{:?}", &line);
-            if line == "No available upgrade found." {
-                already_installed = true;
-            }
-            progress.set_item(&line);
-        }
+        // #[cfg(target_os = "windows")]
+        // for line in BufReader::new(stdout).lines().flatten() {
+        //     dbp!("{:?}", &line);
+        //     if line == "No available upgrade found." {
+        //         already_installed = true;
+        //     }
+        //     progress.set_item(&line);
+        // }
 
         let status = child.wait()
             .with_context(|| format!("Failed to wait on {program}"))?;
